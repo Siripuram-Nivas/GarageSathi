@@ -1,0 +1,211 @@
+import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, FlaskConical, Info, ShieldAlert } from 'lucide-react';
+import { api } from '../lib/api';
+import { fileToWav } from '../lib/audio';
+import type { AiStatus } from '../types';
+import { Badge, Button, Card, Field, PageHeader, Spinner, useToast } from '../components/ui';
+
+type SmokeResult = Awaited<ReturnType<typeof api.smokeTest>>;
+
+export default function AiStatusPage() {
+  const [ai, setAi] = useState<AiStatus | null>(null);
+  const [error, setError] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<SmokeResult | null>(null);
+  const { push } = useToast();
+
+  useEffect(() => {
+    api
+      .aiStatus()
+      .then(setAi)
+      .catch((e) => setError(e.message));
+  }, []);
+
+  async function runSmokeTest() {
+    if (!file) {
+      push('Choose a short Telugu-English WAV clip first.', 'error');
+      return;
+    }
+    setRunning(true);
+    setResult(null);
+    try {
+      const wav = await fileToWav(file);
+      const response = await api.smokeTest(wav.blob);
+      setResult(response);
+      push('Live smoke test completed. One STT and one TTS request were sent.', 'success');
+    } catch (e) {
+      push((e as Error).message, 'error');
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  if (error) return <Card className="p-8 text-center text-rose-300">{error}</Card>;
+  if (!ai) return <Spinner label="Checking Gnani integration readiness…" />;
+
+  const liveReady = ai.mode === 'live' && ai.gnaniConfigured && ai.allowLiveTests;
+
+  return (
+    <div>
+      <PageHeader
+        title="AI integration status"
+        subtitle="What the backend will call, and whether live mode is actually enabled."
+        actions={<Badge tone={ai.mode === 'live' ? 'teal' : 'amber'}>{ai.mode === 'live' ? 'LIVE GNANI AI MODE' : 'MOCK MODE'}</Badge>}
+      />
+
+      {ai.notes.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {ai.notes.map((note) => (
+            <div key={note} className="flex items-start gap-2 rounded-xl border border-sky-400/30 bg-sky-400/5 p-3 text-sm text-sky-200">
+              <Info size={16} className="mt-0.5 shrink-0" /> {note}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ProviderCard
+          title="Gnani Prisma"
+          subtitle="Speech to text"
+          ready={ai.gnaniConfigured}
+          rows={[
+            ['Endpoint', `POST ${ai.stt.endpoint}`],
+            ['Model', ai.stt.model],
+            ['Language candidates', ai.stt.language],
+            ['Format', ai.stt.format],
+            ['Keyterms + topic', ai.stt.keyterms ? 'Enabled' : 'Disabled'],
+          ]}
+          footer="Unverified live. A successful request has not been recorded in this build."
+        />
+        <ProviderCard
+          title="Gnani Timbre"
+          subtitle="Telugu speech"
+          ready={ai.gnaniConfigured}
+          rows={[
+            ['Endpoint', `POST ${ai.tts.endpoint}`],
+            ['Model', ai.tts.model],
+            ['Voice', ai.tts.voice],
+            ['Language', ai.tts.language],
+            ['Voices accepted', ai.tts.voices.join(', ')],
+          ]}
+          footer="Unverified live. Mock mode returns a labelled tone, not speech."
+        />
+        <ProviderCard
+          title="Gnani Evon v3.3"
+          subtitle="Optional reasoning"
+          ready={ai.evon === 'READY'}
+          rows={[
+            ['Status', ai.evon],
+            ['Deployment', 'Remote OpenAI-compatible endpoint only'],
+            ['Authority', 'Never prices or approves jobs'],
+          ]}
+          footer="No hosted internship API. Disabled by default; deterministic extraction is authoritative."
+        />
+      </div>
+
+      <Card className="mt-4 p-5">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-slate-200">
+          <FlaskConical size={16} /> One-time live smoke test
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Sends exactly one Prisma request and one Timbre request. It consumes programme credits and must be enabled deliberately.
+        </p>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <Field label="Short Telugu-English clip (≤30s)" hint="Uploaded audio is decoded and converted to WAV; it is not stored.">
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                className="block w-full rounded-xl border border-ink-600 bg-ink-900/70 p-2 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-slate-200"
+              />
+            </Field>
+            <Button onClick={runSmokeTest} loading={running} disabled={!liveReady}>
+              Run one live test
+            </Button>
+            {!liveReady && (
+              <p className="flex items-start gap-2 text-xs text-amber-300">
+                <ShieldAlert size={14} className="mt-0.5 shrink-0" />
+                Disabled. Requires AI_PROVIDER_MODE=live, a configured key and ALLOW_GNANI_LIVE_TESTS=true.
+              </p>
+            )}
+            <p className="text-xs text-slate-500">
+              After testing, set ALLOW_GNANI_LIVE_TESTS=false again to avoid accidental spend.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-ink-600 bg-ink-900/50 p-4">
+            {!result ? (
+              <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-sm text-slate-500">
+                <AlertTriangle size={18} />
+                No live result yet. Nothing has been sent to Gnani in this session.
+              </div>
+            ) : (
+              <div className="space-y-3 text-sm text-slate-300">
+                <p className="flex items-center gap-2 text-teal-300">
+                  <CheckCircle2 size={16} /> Smoke test returned
+                </p>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Transcript</p>
+                  <p className="mt-1 rounded-lg border border-ink-600 p-2">{result.stt.transcript}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {result.stt.detectedLanguage || 'language not reported'} · request {result.stt.requestId || 'n/a'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Timbre audio</p>
+                  <audio
+                    controls
+                    className="mt-1 w-full"
+                    src={URL.createObjectURL(
+                      new Blob([Uint8Array.from(atob(result.tts.audioBase64), (c) => c.charCodeAt(0))], { type: result.tts.contentType }),
+                    )}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">{result.tts.bytes} bytes of real WAV returned.</p>
+                </div>
+                <p className="text-xs text-slate-500">{result.note}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function ProviderCard({
+  title,
+  subtitle,
+  ready,
+  rows,
+  footer,
+}: {
+  title: string;
+  subtitle: string;
+  ready: boolean;
+  rows: Array<[string, string]>;
+  footer: string;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-medium text-white">{title}</h2>
+          <p className="text-xs text-slate-500">{subtitle}</p>
+        </div>
+        <Badge tone={ready ? 'teal' : 'amber'}>{ready ? 'CONFIGURED' : 'NOT CONFIGURED'}</Badge>
+      </div>
+      <dl className="mt-4 space-y-2 text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-700 pb-2 last:border-0">
+            <dt className="text-slate-500">{label}</dt>
+            <dd className="max-w-[70%] break-words text-right text-slate-300">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs text-slate-500">{footer}</p>
+    </Card>
+  );
+}
