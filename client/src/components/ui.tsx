@@ -2,7 +2,10 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
@@ -75,7 +78,11 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
       <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
       {children}
       {hint && !error && <span className="block text-xs text-slate-500">{hint}</span>}
-      {error && <span className="block text-xs text-rose-400">{error}</span>}
+      {error && (
+        <span role="alert" className="block text-xs text-rose-400">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -83,17 +90,23 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
 const control =
   'w-full rounded-xl border border-ink-600 bg-ink-900/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-teal-400/60 focus:outline-none focus:ring-2 focus:ring-teal-400/20';
 
-export const Input = (props: InputHTMLAttributes<HTMLInputElement>) => (
-  <input {...props} className={cn(control, props.className)} />
+const invalidControl = 'border-rose-500/60 focus:border-rose-400/60 focus:ring-rose-400/20';
+
+export const Input = ({ invalid, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) => (
+  <input {...props} aria-invalid={invalid || undefined} className={cn(control, invalid && invalidControl, className)} />
 );
 
-export const Textarea = (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-  <textarea {...props} className={cn(control, 'min-h-24 resize-y', props.className)} />
+export const Textarea = ({ invalid, className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean }) => (
+  <textarea {...props} aria-invalid={invalid || undefined} className={cn(control, 'min-h-24 resize-y', invalid && invalidControl, className)} />
 );
 
-export const Select = (props: SelectHTMLAttributes<HTMLSelectElement>) => (
-  <select {...props} className={cn(control, 'appearance-none', props.className)} />
+export const Select = ({ invalid, className, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean }) => (
+  <select {...props} aria-invalid={invalid || undefined} className={cn(control, 'appearance-none', invalid && invalidControl, className)} />
 );
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden="true" className={cn('motion-safe:animate-pulse rounded-lg bg-ink-700/70', className)} />;
+}
 
 export function Spinner({ label = 'Loading…' }: { label?: string }) {
   return (
@@ -182,20 +195,73 @@ export function Modal({
   children,
   onClose,
   footer,
+  dismissOnBackdrop = true,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   onClose: () => void;
   footer?: ReactNode;
+  dismissOnBackdrop?: boolean;
 }) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    restoreRef.current = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    panel?.querySelector<HTMLElement>('[data-autofocus], button, input, select, textarea, a[href]')?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !panel) return;
+      const focusable = [...panel.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      restoreRef.current?.focus?.();
+    };
+  }, [open]);
+
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-ink-600 bg-ink-850 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={dismissOnBackdrop ? onClose : undefined}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="w-full max-w-md rounded-2xl border border-ink-600 bg-ink-850 p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mb-3 flex items-start justify-between gap-4">
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-ink-700 hover:text-white">
+          <h2 id={titleId} className="text-lg font-semibold text-white">
+            {title}
+          </h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-ink-700 hover:text-white" aria-label="Close dialog">
             <X size={16} />
           </button>
         </div>
@@ -203,5 +269,49 @@ export function Modal({
         {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
       </div>
     </div>
+  );
+}
+
+/** Confirmation for destructive or hard-to-undo actions. Backdrop clicks do not dismiss it. */
+export function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  cancelLabel = 'Cancel',
+  tone = 'danger',
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  children: ReactNode;
+  confirmLabel: string;
+  cancelLabel?: string;
+  tone?: 'danger' | 'primary';
+  busy?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      open={open}
+      title={title}
+      onClose={onClose}
+      dismissOnBackdrop={false}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            {cancelLabel}
+          </Button>
+          <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm} loading={busy}>
+            {confirmLabel}
+          </Button>
+        </>
+      }
+    >
+      {children}
+    </Modal>
   );
 }

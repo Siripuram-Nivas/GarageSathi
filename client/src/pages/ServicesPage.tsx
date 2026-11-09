@@ -3,9 +3,15 @@ import { AlertTriangle, Plus, Save } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Service } from '../types';
 import { formatINR } from '../lib/format';
-import { Badge, Button, Card, Field, Input, PageHeader, Spinner, useToast } from '../components/ui';
+import { Badge, Button, Card, Field, Input, PageHeader, Skeleton, useToast } from '../components/ui';
 
 type Draft = { rupees: string; isActive: boolean };
+
+const priceError = (rupees: string) => {
+  const value = Number(rupees);
+  if (!rupees.trim() || !Number.isFinite(value) || value < 0) return 'Enter a price of 0 or more.';
+  return '';
+};
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[] | null>(null);
@@ -13,6 +19,7 @@ export default function ServicesPage() {
   const [savingId, setSavingId] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newService, setNewService] = useState({ name: '', rupees: '', category: 'General', aliases: '' });
+  const [addError, setAddError] = useState('');
   const [adding, setAdding] = useState(false);
   const { push } = useToast();
 
@@ -28,15 +35,32 @@ export default function ServicesPage() {
 
   useEffect(load, []);
 
-  if (!services) return <Spinner label="Loading service catalogue…" />;
+  if (!services) {
+    return (
+      <div>
+        <PageHeader title="Service catalogue" subtitle="Loading catalogue…" />
+        <Card className="overflow-hidden p-4" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="flex items-center gap-4 border-t border-ink-700 py-4 first:border-0">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </Card>
+      </div>
+    );
+  }
 
   async function save(service: Service) {
     const draft = drafts[service.id];
-    const rupees = Number(draft?.rupees);
-    if (!Number.isFinite(rupees) || rupees < 0) {
-      push('Enter a valid price in rupees.', 'error');
+    const error = priceError(draft?.rupees ?? '');
+    if (error) {
+      push(error, 'error');
       return;
     }
+    const rupees = Number(draft.rupees);
     setSavingId(service.id);
     try {
       const { service: updated } = await api.updateService(service.id, {
@@ -53,11 +77,14 @@ export default function ServicesPage() {
   }
 
   async function addService() {
-    const rupees = Number(newService.rupees);
-    if (newService.name.trim().length < 2 || !Number.isFinite(rupees) || rupees < 0) {
-      push('Enter a service name and a valid price.', 'error');
+    const error =
+      newService.name.trim().length < 2 ? 'Enter a service name of at least 2 characters.' : priceError(newService.rupees);
+    if (error) {
+      setAddError(error);
       return;
     }
+    const rupees = Number(newService.rupees);
+    setAddError('');
     setAdding(true);
     try {
       const { service } = await api.createService({
@@ -104,10 +131,22 @@ export default function ServicesPage() {
           <h2 className="mb-3 text-sm font-medium text-slate-200">New catalogue service</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Name">
-              <Input value={newService.name} onChange={(e) => setNewService({ ...newService, name: e.target.value })} placeholder="Air Filter Replacement" />
+              <Input
+                value={newService.name}
+                onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                invalid={Boolean(addError) && newService.name.trim().length < 2}
+                placeholder="Air Filter Replacement"
+              />
             </Field>
             <Field label="Price (₹)">
-              <Input type="number" min={0} value={newService.rupees} onChange={(e) => setNewService({ ...newService, rupees: e.target.value })} placeholder="250" />
+              <Input
+                type="number"
+                min={0}
+                value={newService.rupees}
+                onChange={(e) => setNewService({ ...newService, rupees: e.target.value })}
+                invalid={Boolean(addError) && Boolean(priceError(newService.rupees))}
+                placeholder="250"
+              />
             </Field>
             <Field label="Category">
               <Input value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} />
@@ -116,6 +155,11 @@ export default function ServicesPage() {
               <Input value={newService.aliases} onChange={(e) => setNewService({ ...newService, aliases: e.target.value })} placeholder="air filter, ఎయిర్ ఫిల్టర్" />
             </Field>
           </div>
+          {addError && (
+            <p role="alert" className="mt-2 text-xs text-rose-400">
+              {addError}
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <Button onClick={addService} loading={adding}>
               Save service
@@ -158,7 +202,13 @@ export default function ServicesPage() {
                         onChange={(e) => setDrafts({ ...drafts, [service.id]: { ...draft, rupees: e.target.value } })}
                         className="w-28"
                         aria-label={`Price for ${service.name}`}
+                        invalid={Boolean(priceError(draft.rupees))}
                       />
+                      {priceError(draft.rupees) && (
+                        <p role="alert" className="mt-1 text-xs text-rose-400">
+                          {priceError(draft.rupees)}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-slate-300">

@@ -20,6 +20,7 @@ Built for the **Great Indian AI Internship Challenge 2026 — Real Deal Award**.
 6. **Job card** — unique `GS-1001` ID, price snapshot, mechanic notes, status history.
 7. **Telugu confirmation** — Gnani Timbre v2.5 (`Varuni`) speaks the approved amount; mock mode plays a generated tone clearly labelled **Mock audio**.
 8. **Dashboard** — counts, approved revenue, recent jobs, service and status breakdowns.
+9. **Polished operations UI** — collapsible sidebar, command palette, keyboard shortcuts, skeleton loading, sortable/paginated job table with bulk status updates, draft autosave and recovery, and accessible dialogs. See *Keyboard shortcuts* below.
 
 ## Screens
 
@@ -61,11 +62,35 @@ The app starts in **mock mode** with the six-service demo catalogue. No key, no 
 | `npm run dev` | API + Vite together |
 | `npm run dev:server` | API only |
 | `npm run dev:client` | Vite only |
-| `npm test` | Server (38) + client (4) tests |
+| `npm test` | Server (47) + client (18) tests |
 | `npm run typecheck` | TypeScript on both workspaces |
 | `npm run build` | Production build of server and client |
 | `npm run start` | Run the built server |
 | `npm run seed` | Reseed the service catalogue |
+
+### Keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `Ctrl`/`Cmd` + `K` or `?` | Open/close the command palette |
+| `↑` `↓` `Enter` / `Esc` | Navigate / open / close the palette |
+| `g` then `d` | Dashboard |
+| `g` then `j` | Job cards |
+| `g` then `s` | Service catalogue |
+| `g` then `a` | AI integration |
+| `n` | New voice job |
+| `Esc` | Close the mobile drawer or an open dialog |
+
+Shortcuts are ignored while typing in an input, textarea or select.
+
+### Interaction features
+
+- Collapsible desktop sidebar (preference saved in `localStorage`) and a mobile drawer.
+- Skeleton loading states, page transitions, and `prefers-reduced-motion` support.
+- Job table: debounced search, sortable columns, pagination, row/page selection, bulk status update with per-record results.
+- New job: autosaves the transcript and typed fields to `sessionStorage` (24 h TTL); audio is never saved. Restoring a draft re-fetches prices from the server.
+- Inline validation for customer name/phone and service prices; failed saves keep the form filled.
+- Confirmation dialogs for destructive actions (cancel job, demo reset, discard draft) with focus trap and Escape-to-cancel.
 
 ## Configuration
 
@@ -107,7 +132,8 @@ Automated tests never call Gnani. There is no automatic fallback from live to mo
 ```
 client/                  React SPA
   src/pages/             dashboard, intake, jobs, catalogue, settings, AI status
-  src/lib/               typed API client, WAV encoding, INR helpers
+  src/components/        layout, command palette, shared UI (fields, skeleton, modal)
+  src/lib/               typed API client, WAV encoding, INR helpers, jobs/draft/command helpers
 server/                  Express API
   src/routes.ts          all endpoints
   src/auth.ts            argon2id hashing, owner bootstrap (opt-in auth)
@@ -118,7 +144,7 @@ server/                  Express API
   src/pricing.ts         paise estimate
   src/providers/         mock + live Gnani Prisma/Timbre, optional Evon
   src/db/                Mongoose and JSON-file stores
-  tests/                 38 Vitest/Supertest tests (incl. security + auth)
+  tests/                 47 Vitest/Supertest tests (incl. security + auth + bulk status)
 BRAIN/                   project memory: spec, architecture, APIs, decisions, logs
 SECURITY/                audit report, threat model, env audit, access matrix, remediation log, test matrix
 submission/              challenge documents and screenshots
@@ -143,7 +169,7 @@ Authentication is **opt-in** and off by default so the app works out of the box.
 4. Store `GNANI_API_KEY_ID` and `MONGODB_URI` in the hosting provider's secret manager (never in Git).
 5. Set `NODE_ENV=production` and confirm HTTPS before enabling HSTS.
 
-When enabled, write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `POST /api/ai/smoke-test`) require an owner session and a `X-CSRF-Token` header. The frontend login page (`/login`) and Layout sign-in/sign-out are included; enable `AUTH_ENABLED` to use them.
+When enabled, write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`) require an owner session and a `X-CSRF-Token` header. The frontend login page (`/login`) and Layout sign-in/sign-out are included; enable `AUTH_ENABLED` to use them. The API client captures the token from response headers and echoes it automatically.
 
 See `SECURITY/SECURITY_AUDIT.md` for the full audit report, threat model, and residual risks.
 

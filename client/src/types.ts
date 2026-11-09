@@ -117,6 +117,12 @@ export interface Health {
   demoMode: boolean;
 }
 
+export interface BulkStatusResponse {
+  updated: number;
+  failed: number;
+  results: Array<{ jobId: string; ok: true; job: Job } | { jobId: string; ok: false; code: string; message: string }>;
+}
+
 export interface TranscriptResponse {
   transcript: string;
   detectedLanguage: string;

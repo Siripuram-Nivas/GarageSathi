@@ -148,11 +148,11 @@ No live Gnani API calls were made during automated testing (mock mode enforced).
 | Suite | Result |
 |---|---|
 | `server/tests/units.test.ts` | 12 passed |
-| `server/tests/api.test.ts` | 15 passed |
+| `server/tests/api.test.ts` | 16 passed |
 | `server/tests/security.test.ts` (new) | 11 passed |
 | `server/tests/auth.integration.test.ts` (new) | 8 passed |
-| `client/src/lib/*.test.ts` | 4 passed |
-| **Total** | **46 passed, 0 failed** |
+| `client/src/lib/*.test.ts` | 18 passed |
+| **Total** | **65 passed, 0 failed** (2026-11-09; security-specific suites unchanged) |
 | `npm run typecheck` | Passed (server + client) |
 | `npm run build` | Passed (server + client; Vite chunk-size warning only) |
 

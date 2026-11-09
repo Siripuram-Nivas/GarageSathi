@@ -156,14 +156,12 @@ export default function AiStatusPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Timbre audio</p>
-                  <audio
-                    controls
-                    className="mt-1 w-full"
-                    src={URL.createObjectURL(
-                      new Blob([Uint8Array.from(atob(result.tts.audioBase64), (c) => c.charCodeAt(0))], { type: result.tts.contentType }),
-                    )}
-                  />
-                  <p className="mt-1 text-xs text-slate-500">{result.tts.bytes} bytes of real WAV returned.</p>
+                  <p className="mt-1 rounded-lg border border-ink-600 p-2">
+                    {result.tts.bytes} bytes of {result.tts.contentType} returned.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    The smoke-test response no longer embeds audio. Play a confirmation from a saved job card to listen.
+                  </p>
                 </div>
                 <p className="text-xs text-slate-500">{result.note}</p>
               </div>

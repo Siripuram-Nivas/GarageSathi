@@ -18,3 +18,7 @@ Format: decision — reason — alternatives — consequences — date.
 14. **Helmet security headers + strict CSP** — clickjacking, content-type sniffing, and inline-script mitigation — HSTS omitted until HTTPS confirmed on deployment — 2026-11-08.
 15. **Strict CORS allowlist (no `*` with credentials)** — `CORS_ORIGIN` env var controls allowed origins — no origin reflection — 2026-11-08.
 16. **Smoke-test response excludes raw audio** — return `bytes`/`contentType` only, not `audioBase64` — reduces paid-audio abuse surface — 2026-11-08.
+17. **No new UI libraries** — the interaction layer (skeletons, dialogs, palette, hooks) is built on React, Tailwind v4, Lucide, and local helpers — Radix/headless UI/framer-motion/React Query rejected for bundle size and zero need — `components/ui.tsx` + four `lib/*` helpers — 2026-11-09.
+18. **Drafts autosave text only to `sessionStorage`, with a 24 h TTL** — never lose typed work, never persist audio — localStorage rejected (drafts are per-tab and end with the session), IndexedDB rejected (overkill) — restoring a draft always drops to `review` so prices are re-fetched from the server — 2026-11-09.
+19. **Bulk status updates are per-record, not transactional** — one stale or completed job must not block the rest — all-or-nothing rejected — response returns per-record results and the UI reports skipped records — 2026-11-09.
+20. **Sidebar preference in `localStorage`; CSRF token in module memory** — UI preference should survive reloads, a security token should not be persisted — 2026-11-09.

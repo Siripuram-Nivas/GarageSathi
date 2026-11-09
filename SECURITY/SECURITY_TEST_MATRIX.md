@@ -36,9 +36,9 @@
 - `server/tests/units.test.ts` — 12 passed
 - `server/tests/security.test.ts` — 11 passed
 - `server/tests/auth.integration.test.ts` — 8 passed
-- `server/tests/api.test.ts` — 15 passed
-- `client/src/lib/*.test.ts` — 4 passed
-- **Total: 46 passed, 0 failed**
+- `server/tests/api.test.ts` — 16 passed
+- `client/src/lib/*.test.ts` — 18 passed
+- **Total: 65 passed, 0 failed** (updated 2026-11-09; the security suite itself is unchanged at 19 tests)
 
 **Not automated (manual next steps):**
 - CORS disallowed-origin rejection (requires a real cross-origin test client)

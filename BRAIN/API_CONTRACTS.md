@@ -45,7 +45,7 @@ Authentication is disabled by default (`AUTH_ENABLED=false`) and preserves exist
 - `GET /api/auth/me` — returns the current session user or 401.
 
 **Access control (when `AUTH_ENABLED=true`):**
-- Protected write routes require an owner session + `X-CSRF-Token` header: `POST /api/services`, `PATCH /api/services/:id`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `POST /api/ai/smoke-test`.
+- Protected write routes require an owner session + `X-CSRF-Token` header: `POST /api/services`, `PATCH /api/services/:id`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`.
 - Read routes and job creation remain public (single-garage, voice-first design).
 - CSRF token is issued on every response as the `X-CSRF-Token` header when sessions are active; clients must echo it on state-changing requests.
 - Session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production, 8-hour max age, rotated on login.
@@ -67,6 +67,7 @@ All responses JSON unless noted. Errors: `{ "error": { "code": string, "message"
 | GET | `/api/jobs` | `?status=&q=` | list, newest first |
 | GET | `/api/jobs/:id` | — | by `jobId` or id |
 | PATCH | `/api/jobs/:id/status` | `{status, note?}` | lifecycle validated; requires owner session + CSRF when auth enabled |
+| PATCH | `/api/jobs/bulk-status` | `{jobIds: string[] (1–50), status, note?}` | per-record validation, partial success; requires owner session + CSRF when auth enabled; rate-limited 30/min |
 | GET | `/api/dashboard` | — | counts, revenue, recent, breakdowns |
 | POST | `/api/demo/reset` | `{confirm:true}` | requires `DEMO_MODE=true`; requires owner session + CSRF when auth enabled |
 | GET | `/api/ai/status` | — | provider readiness, no billable calls |
@@ -77,3 +78,18 @@ All responses JSON unless noted. Errors: `{ "error": { "code": string, "message"
 | GET | `/api/auth/me` | — | returns current user or 401 |
 
 Lifecycle: `RECEIVED → INSPECTION → AWAITING_APPROVAL → APPROVED → IN_PROGRESS → READY_FOR_DELIVERY → COMPLETED`; `CANCELLED` from any non-terminal state.
+
+**Bulk status response** (`200`, not transactional — each record is validated independently):
+
+```json
+{
+  "updated": 2,
+  "failed": 1,
+  "results": [
+    { "jobId": "GS-1002", "ok": true, "job": { "...": "updated job" } },
+    { "jobId": "GS-1003", "ok": false, "code": "INVALID_TRANSITION", "message": "Cannot move a job from COMPLETED to IN_PROGRESS." }
+  ]
+}
+```
+
+Duplicate `jobIds` are de-duplicated; unknown IDs return `ok: false` with `JOB_NOT_FOUND`. An empty `jobIds` array is a `400` validation error.

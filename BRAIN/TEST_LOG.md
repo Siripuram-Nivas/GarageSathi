@@ -83,6 +83,51 @@ Also fixed during this pass: detected language now passed through from Prisma re
 
 `submission/screenshots/01-dashboard.png` … `07-mobile-menu.png` (7 files).
 
+## 2026-11-09 — UI/UX enhancement suite
+
+`npm test` at repository root — **65 passed / 65** (10 files):
+
+- **Server — 47 passed / 47** (4 files)
+  - `tests/api.test.ts` — 16 tests (was 15): added bulk status partial-success, invalid-transition per-record failure, and empty-list 400.
+  - `tests/units.test.ts` — 12 tests.
+  - `tests/security.test.ts` — 11 tests.
+  - `tests/auth.integration.test.ts` — 8 tests.
+- **Client — 18 passed / 18** (6 files, was 4/2):
+  - `lib/api.test.ts` (3): CSRF token echoed only on write methods; aborted request → `TIMEOUT`; network failure and error envelopes → `ApiError`.
+  - `lib/jobs.test.ts` (5): cross-field search, status filter, numeric job sorting, estimate/status sorting, page clamping.
+  - `lib/draft.test.ts` (3): draft round-trip + clear, rejects expired/corrupt/foreign drafts, empty form is not recoverable content.
+  - `lib/commands.test.ts` (3): palette filtering by label/hint, empty query, no-match.
+  - `lib/format.test.ts` (3), `lib/audio.test.ts` (1): unchanged.
+
+`npm run typecheck`: passes for server and client.
+`npm run build`: passes — server `tsc`, client `vite build`. Only warning: Vite chunk-size advisory (798 kB JS / 228 kB gzip).
+
+### Manual browser pass (Playwright, mock mode, 1440×900 and 390×780)
+
+Verified in the running app without mutating saved demo data:
+
+1. Desktop sidebar collapse → 76 px; survives reload (localStorage `garagesathi.sidebarCollapsed`).
+2. Ctrl+K toggles the palette; `?` opens it with focus in the search box.
+3. Palette filter `serv` + Enter navigates to `/services`; Escape closes.
+4. Shortcuts `g j` → `/jobs`, `n` → `/new`.
+5. Mobile 390 px: no horizontal overflow; drawer opens, Escape closes and returns focus to the menu button.
+6. Jobs search debounce: `activa` → 1 shown, `zzz` → 0 shown + empty state.
+7. Services inline price validation sets `aria-invalid="true"` and shows the error; clearing fixes both.
+8. Draft inject → recovery banner → Restore → review → preview; name/phone errors appear on blur and clear on valid input; Discard confirm clears `sessionStorage`.
+9. Bulk selection bar shows eligible count; confirm dialog opens and Escape cancels (no mutation executed).
+10. Settings reset confirm is not dismissed by a backdrop click; Cancel closes it.
+11. Job status modal: focus enters the dialog, Escape closes and restores focus to the trigger.
+12. `prefers-reduced-motion: reduce` → page animation `animation-name: none`.
+13. API still returns only `GS-1001`; job count unchanged after the pass.
+
+Console: only the expected `403 /api/auth/me` (`AUTH_DISABLED`) errors; no React or runtime errors.
+
+### NOT verified in this pass
+
+- Bulk status **mutation through the browser** — UI was cancelled at the confirm dialog to preserve demo data; the server path is covered by `api.test.ts`.
+- CSRF end-to-end with `AUTH_ENABLED=true` — client behaviour covered by a unit test with mocked fetch only.
+- No automated Playwright E2E suite — the browser pass was manual/scripted, not committed as tests.
+
 ## NOT verified
 
 | Item | Reason |

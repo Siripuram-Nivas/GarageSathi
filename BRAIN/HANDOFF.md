@@ -1,18 +1,20 @@
 # HANDOFF
 
-Last updated: 2026-11-08.
+Last updated: 2026-11-09.
 
 ## Where the project stands
 
-GarageSathi is built end to end and runs locally in mock mode. The full workflow was validated in a browser; 46 automated tests pass (27 server + 11 security + 8 auth integration + 4 client); typecheck and production build pass. Documentation, the submission pack, and the security audit pack are written.
+GarageSathi is built end to end and runs locally in mock mode. The full workflow was validated in a browser; **65 automated tests pass (47 server + 18 client)**, and typecheck and production build pass. Documentation, the submission pack, and the security audit pack are written.
 
 **Security hardening applied (opt-in, off by default):**
 - Argon2id password hashing + one-time owner bootstrap (`server/src/auth.ts`, `server/src/authRoutes.ts`)
 - Session-based auth (`express-session`), login/logout/me, CSRF double-submit protection (`X-CSRF-Token`)
-- Write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `POST /api/ai/smoke-test`) require owner session + CSRF when `AUTH_ENABLED=true`
+- Write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`) require owner session + CSRF when `AUTH_ENABLED=true`
 - Helmet security headers + CSP; strict CORS allowlist; stricter audio rate limit; smoke test no longer returns raw audio base64
 
-**Not done:** Telugu-clip verification through the live UI, enabling auth in production, deployment, demo video, automated E2E.
+**UI/UX enhancement (uncommitted):** collapsible sidebar with persistence, mobile drawer, command palette (Ctrl/Cmd+K, `?`), `g`-prefixed shortcuts, skeleton loaders, sortable/paginated jobs table with bulk status updates, draft autosave + recovery on the new-job flow, inline validation, accessible modals/confirm dialogs, reduced-motion support and a Telugu font token. Details in `TEST_LOG.md`.
+
+**Not done:** Telugu-clip verification through the live UI, enabling auth in production, deployment, demo video, automated E2E, end-to-end CSRF check with auth on.
 
 A single live smoke test on 2026-11-08 passed: Prisma transcribed English speech correctly (`en-IN`) and Timbre returned a 48 kHz WAV. See `TEST_LOG.md`; audio at `submission/live-smoke-tts.wav`.
 
@@ -34,7 +36,7 @@ To try auth locally: set `AUTH_ENABLED=true`, `AUTH_SESSION_SECRET=<random>`, `G
 
 ## Current local data state
 
-File store `data/db.json` (gitignored) holds one demo job: `GS-1001`, Ravi Kumar, Honda Activa, ₹550, `IN_PROGRESS`. Catalogue restored to seed prices. Use Settings → Reset demo data while `DEMO_MODE=true` to clear.
+File store `data/db.json` (gitignored) holds one demo job: `GS-1001`, Ravi Kumar, Honda Activa, ₹550, `IN_PROGRESS`. Catalogue restored to seed prices. Use Settings → Reset demo data while `DEMO_MODE=true` to clear. UI/UX browser verification did not mutate saved data (bulk update and reset dialogs were cancelled).
 
 ## Environment
 
@@ -46,7 +48,7 @@ New auth-related variables (placeholders in `.env.example`): `AUTH_ENABLED`, `AU
 
 1. **Verify live Telugu (next).** With live mode on, record a real 5–10 s Telugu complaint in **New job**, check the transcript, save the job, and play the Varuni confirmation. Record accuracy notes in `TEST_LOG.md` and `submission/GNANI_MODELS_USED.md`.
 2. **Keep the gate closed.** `ALLOW_GNANI_LIVE_TESTS` stays `false`; the smoke test has already passed and should not be repeated. Switch `AI_PROVIDER_MODE=mock` when you do not want to spend credits.
-3. **Enable auth for production.** Set `AUTH_ENABLED=true` + `AUTH_SESSION_SECRET`, run `POST /api/auth/setup` with `GARAGE_SETUP_TOKEN` to create the owner, then rotate/remove the token. Set `DEMO_MODE=false` and real `CORS_ORIGIN`.
+3. **Enable auth for production.** Set `AUTH_ENABLED=true` + `AUTH_SESSION_SECRET`, run `POST /api/auth/setup` with `GARAGE_SETUP_TOKEN` to create the owner, then rotate/remove the token. Set `DEMO_MODE=false` and real `CORS_ORIGIN`. Then re-test one GET and one write through the UI to confirm the CSRF round-trip.
 4. **Deploy** following `DEPLOYMENT.md` (Atlas + Render/Railway + Vercel). Set `NODE_ENV=production`, real `CORS_ORIGIN`, `VITE_API_URL`. Record URLs here and in `README.md`.
 5. **Record the demo video** using `submission/DEMO_SCRIPT.md`.
 6. **Publish** the LinkedIn post with the honest status line (replace placeholders), then rotate the Gnani key.
@@ -61,7 +63,9 @@ New auth-related variables (placeholders in `.env.example`): `AUTH_ENABLED`, `AU
 - **Audio.** No persistence. Browser encodes WAV; no ffmpeg dependency — do not reintroduce one.
 - **File store** is single-process only. Use MongoDB for anything shared or long-lived.
 - **Auth is opt-in.** `AUTH_ENABLED=false` preserves existing frontend behavior; enable before production and add the frontend login flow (already built: `/login` page + Layout sign-in/sign-out).
-- **CSRF token.** When auth is enabled, the frontend must send `X-CSRF-Token` on POST/PATCH/DELETE (Layout reads it from responses automatically).
+- **CSRF token.** When auth is enabled, the frontend must send `X-CSRF-Token` on POST/PATCH/DELETE. `client/src/lib/api.ts` captures it from response headers and echoes it automatically — keep that behaviour if you refactor the fetch wrapper.
+- **Bulk status.** `PATCH /api/jobs/bulk-status` validates each record independently and returns per-record results; it is not transactional. Do not change it to fail-all without updating the UI.
+- **Draft autosave** stores text only in `sessionStorage`, never audio. Restoring a draft always drops to `review` so prices are re-fetched from the server.
 - **Dev servers** may still be running from the previous session (API 4000, Vite 5173). Check ports before starting again.
 - **Playwright/MCP refs** go stale after HMR; re-snapshot before clicking if that tooling is used again.
 
@@ -77,8 +81,16 @@ New auth-related variables (placeholders in `.env.example`): `AUTH_ENABLED`, `AU
 - `server/src/catalogue.ts` — seeds + alias/fuzzy matching
 - `server/src/telugu.ts` — confirmation text + number words
 - `client/src/pages/LoginPage.tsx` — sign-in page
-- `client/src/components/Layout.tsx` — nav, auth state, sign-in/sign-out
-- `client/src/pages/NewJobPage.tsx` — intake → preview → approval → saved
+- `client/src/components/Layout.tsx` — nav, auth state, sign-in/sign-out, sidebar collapse, shortcuts, mobile drawer
+- `client/src/components/CommandPalette.tsx` — Ctrl/Cmd+K command palette
+- `client/src/components/ui.tsx` — buttons, fields, skeletons, accessible modal + confirm dialog
+- `client/src/pages/NewJobPage.tsx` — intake → preview → approval → saved, draft autosave/recovery
+- `client/src/pages/JobsPage.tsx` — sortable/paginated table, selection, bulk status
+- `client/src/lib/api.ts` — fetch wrapper: timeouts, CSRF echo, typed errors
+- `client/src/lib/draft.ts` — draft serialize/validate/TTL
+- `client/src/lib/jobs.ts` — filter/sort/paginate helpers
+- `client/src/lib/commands.ts` — palette command list/filter
+- `client/src/lib/hooks.ts` — persisted state + debounce hooks
 - `client/src/lib/audio.ts` — PCM recording + WAV encode/decode
 - `BRAIN/API_CONTRACTS.md` — canonical API reference (incl. auth endpoints)
 - `SECURITY/SECURITY_AUDIT.md` — full audit report

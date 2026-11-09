@@ -16,7 +16,7 @@ Status as of 2026-11-08. Anything not ticked is genuinely not done.
 
 ## Verification
 
-- [x] `npm test` — **27 server + 4 client tests pass** (2026-11-08).
+- [x] `npm test` — **47 server + 18 client tests pass** (65 total, 2026-11-09).
 - [x] `npm run typecheck` — passes both workspaces.
 - [x] `npm run build` — server + client production build succeeds.
 - [x] Manual browser pass: upload WAV → mock transcript → edit → preview ₹550 → approve → `GS-1001` → mock confirmation labelled → status `IN_PROGRESS` with history → dashboard reflects 1 job / ₹550.

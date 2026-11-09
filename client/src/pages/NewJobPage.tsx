@@ -9,13 +9,15 @@ import {
   Mic,
   RotateCcw,
   Square,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { MAX_SECONDS, fileToWav, recorder, type RecordedAudio } from '../lib/audio';
 import type { Job, Preview, ServiceItem, TranscriptResponse } from '../types';
-import { formatINR, statusLabel, statusTone } from '../lib/format';
-import { Badge, Button, Card, Field, Input, PageHeader, Select, Textarea, useToast } from '../components/ui';
+import { formatDate, formatINR, statusLabel, statusTone } from '../lib/format';
+import { clearDraft, hasDraftContent, readDraft, writeDraft, type JobDraft } from '../lib/draft';
+import { Badge, Button, Card, ConfirmDialog, Field, Input, PageHeader, Select, Textarea, useToast } from '../components/ui';
 import { SpeakButton } from '../components/SpeakButton';
 
 type Step = 'record' | 'review' | 'preview' | 'saved';
@@ -53,8 +55,55 @@ export default function NewJobPage() {
   const [approved, setApproved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<Job | null>(null);
+  const [saveError, setSaveError] = useState('');
+  const [touched, setTouched] = useState({ name: false, phone: false });
+  const [recovered, setRecovered] = useState<JobDraft | null>(() => {
+    try {
+      return readDraft(sessionStorage);
+    } catch {
+      return null;
+    }
+  });
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const { push } = useToast();
   const stopRef = useRef<() => void>(() => {});
+
+  const nameError = !form.customerName.trim()
+    ? 'Customer name is required before saving.'
+    : form.customerName.trim().length < 2
+      ? 'Use at least 2 characters.'
+      : '';
+  const phoneError =
+    form.customerPhone && !/^[0-9+\-\s]{0,20}$/.test(form.customerPhone) ? 'Use digits, spaces, + or - only (max 20).' : '';
+
+  // Autosave the text the mechanic typed, never the audio blob. Restored on return.
+  useEffect(() => {
+    if (step === 'saved' || !hasDraftContent({ transcript, form })) return;
+    const timer = setTimeout(() => {
+      try {
+        writeDraft(sessionStorage, { step, format, transcript, form });
+      } catch {
+        /* storage blocked: keep working in memory */
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [step, format, transcript, form]);
+
+  function restoreDraft() {
+    if (!recovered) return;
+    setForm(recovered.form);
+    setTranscript(recovered.transcript);
+    setFormat(recovered.format);
+    setComplaintDirty(Boolean(recovered.form.customerComplaint.trim()));
+    setStep(recovered.transcript.trim() ? 'review' : 'record');
+    setRecovered(null);
+    push('Draft restored. Review the transcript and re-run the preview so prices come from the server again.', 'info');
+  }
+
+  function dismissDraft() {
+    clearDraft(sessionStorage);
+    setRecovered(null);
+  }
 
   stopRef.current = () => {
     if (!recorder.active) return;
@@ -135,15 +184,16 @@ export default function NewJobPage() {
         format,
       });
       setPreview(result);
-      setForm({
-        customerName: result.customerName,
-        customerPhone: result.customerPhone,
-        vehicleMake: result.vehicleMake,
-        vehicleModel: result.vehicleModel,
-        registrationNumber: result.registrationNumber,
-        customerComplaint: result.customerComplaint,
-        mechanicNotes: result.mechanicNotes,
-      });
+      // Keep anything the mechanic already typed; extraction only fills empty fields.
+      setForm((current) => ({
+        customerName: current.customerName || result.customerName,
+        customerPhone: current.customerPhone || result.customerPhone,
+        vehicleMake: current.vehicleMake || result.vehicleMake,
+        vehicleModel: current.vehicleModel || result.vehicleModel,
+        registrationNumber: current.registrationNumber || result.registrationNumber,
+        customerComplaint: complaintDirty ? current.customerComplaint : result.customerComplaint,
+        mechanicNotes: current.mechanicNotes || result.mechanicNotes,
+      }));
       setSelection(Object.fromEntries(result.serviceItems.map((item) => [item.serviceId, { checked: true, quantity: item.quantity }])));
       setApproved(false);
       setStep('preview');
@@ -157,8 +207,9 @@ export default function NewJobPage() {
 
   async function handleSave() {
     if (!preview) return;
-    if (!form.customerName.trim()) {
-      push('Add the customer name before saving.', 'error');
+    setTouched({ name: true, phone: true });
+    if (nameError || phoneError) {
+      push(nameError || phoneError, 'error');
       return;
     }
     if (!selectedItems.length) {
@@ -170,6 +221,7 @@ export default function NewJobPage() {
       return;
     }
     setSaving(true);
+    setSaveError('');
     try {
       const { job } = await api.createJob({
         transcript: preview.transcript,
@@ -187,8 +239,11 @@ export default function NewJobPage() {
       });
       setSaved(job);
       setStep('saved');
+      clearDraft(sessionStorage);
       push(`Job ${job.jobId} saved with an approved estimate.`, 'success');
     } catch (error) {
+      // The form stays filled in so the mechanic can fix the cause and retry.
+      setSaveError((error as Error).message);
       push((error as Error).message, 'error');
     } finally {
       setSaving(false);
@@ -198,6 +253,7 @@ export default function NewJobPage() {
   function reset() {
     recorder.cancel();
     if (audio) URL.revokeObjectURL(audio.url);
+    clearDraft(sessionStorage);
     setStep('record');
     setRecording(false);
     setSeconds(0);
@@ -210,6 +266,8 @@ export default function NewJobPage() {
     setSelection({});
     setApproved(false);
     setSaved(null);
+    setSaveError('');
+    setTouched({ name: false, phone: false });
   }
 
   return (
@@ -222,9 +280,31 @@ export default function NewJobPage() {
             <Button variant="secondary" onClick={reset}>
               <RotateCcw size={16} /> Start another
             </Button>
+          ) : hasDraftContent({ transcript, form }) ? (
+            <Button variant="ghost" onClick={() => setConfirmDiscard(true)}>
+              <Trash2 size={16} /> Discard draft
+            </Button>
           ) : undefined
         }
       />
+
+      {recovered && (
+        <Card className="mb-4 flex flex-wrap items-center gap-3 border-amber-400/30 bg-amber-400/5 p-3">
+          <AlertTriangle size={18} className="shrink-0 text-amber-300" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-amber-200">Unsaved draft from {formatDate(new Date(recovered.savedAt).toISOString())}</p>
+            <p className="text-xs text-amber-200/70">
+              Text fields were autosaved in this browser. Audio is never saved — record or upload it again.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={restoreDraft}>
+            Restore draft
+          </Button>
+          <Button variant="ghost" onClick={dismissDraft}>
+            Dismiss
+          </Button>
+        </Card>
+      )}
 
       <ol className="mb-6 flex flex-wrap gap-2 text-xs">
         {STEPS.map((item, index) => {
@@ -372,11 +452,24 @@ export default function NewJobPage() {
               <p className="mt-1 text-xs text-slate-500">Customer-reported complaint · extracted from the {preview.aiMode === 'mock' ? 'mock' : 'Prisma'} transcript.</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Customer name *">
-                  <Input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} placeholder="Ravi Kumar" />
+                <Field label="Customer name *" error={touched.name ? nameError : ''}>
+                  <Input
+                    value={form.customerName}
+                    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+                    onBlur={() => setTouched((current) => ({ ...current, name: true }))}
+                    invalid={touched.name && Boolean(nameError)}
+                    placeholder="Ravi Kumar"
+                  />
                 </Field>
-                <Field label="Phone (optional)">
-                  <Input value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} placeholder="+91 90000 00000" />
+                <Field label="Phone (optional)" error={touched.phone ? phoneError : ''}>
+                  <Input
+                    value={form.customerPhone}
+                    onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
+                    onBlur={() => setTouched((current) => ({ ...current, phone: true }))}
+                    invalid={touched.phone && Boolean(phoneError)}
+                    inputMode="tel"
+                    placeholder="+91 90000 00000"
+                  />
                 </Field>
                 <Field label="Vehicle make">
                   <Input value={form.vehicleMake} onChange={(e) => setForm({ ...form, vehicleMake: e.target.value })} placeholder="Honda" />
@@ -493,6 +586,14 @@ export default function NewJobPage() {
                 </span>
               </label>
 
+              {saveError && (
+                <div role="alert" className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
+                  <p className="font-medium">The job card was not saved.</p>
+                  <p className="mt-1">{saveError}</p>
+                  <p className="mt-1 text-rose-200/70">Your details are still here. Fix the issue and press save again.</p>
+                </div>
+              )}
+
               <Button className="mt-4 w-full" onClick={handleSave} loading={saving} disabled={!approved || !selectedItems.length || !form.customerName.trim()}>
                 <CheckCircle2 size={16} /> Approve &amp; save job card
               </Button>
@@ -575,6 +676,19 @@ export default function NewJobPage() {
           </div>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard this draft?"
+        confirmLabel="Discard draft"
+        onConfirm={() => {
+          setConfirmDiscard(false);
+          reset();
+        }}
+        onClose={() => setConfirmDiscard(false)}
+      >
+        <p>The transcript and job details autosaved in this browser will be deleted. This cannot be undone.</p>
+      </ConfirmDialog>
     </div>
   );
 }

@@ -48,6 +48,12 @@ const createJobSchema = jobSchema.extend({
 
 const statusSchema = z.object({ status: z.enum(JOB_STATUSES as [JobStatus, ...JobStatus[]]), note: z.string().trim().max(300).optional() });
 
+const bulkStatusSchema = z.object({
+  jobIds: z.array(z.string().trim().min(1)).min(1, 'Select at least one job.').max(50),
+  status: z.enum(JOB_STATUSES as [JobStatus, ...JobStatus[]]),
+  note: z.string().trim().max(300).optional(),
+});
+
 const serviceSchema = z.object({
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().max(300).optional().default(''),
@@ -228,28 +234,61 @@ router.get('/jobs/:id', async (req, res) => {
   res.json({ job });
 });
 
-router.patch('/jobs/:id/status', rateLimit(60), ...ownerWrite(), async (req, res) => {
-  const input = parse(statusSchema, req.body);
-  const db = await getDb();
-  const job = await db.jobs.find(String(req.params.id));
-  if (!job) throw new AppError(404, 'JOB_NOT_FOUND', 'Job not found.');
-  if (job.currentStatus === input.status) {
-    throw new AppError(409, 'SAME_STATUS', `Job is already ${input.status}.`);
+async function applyStatusChange(job: JobDoc, status: JobStatus, note?: string) {
+  if (job.currentStatus === status) {
+    throw new AppError(409, 'SAME_STATUS', `Job is already ${status}.`);
   }
-  if (!NEXT_STATUS[job.currentStatus].includes(input.status)) {
-    throw new AppError(409, 'INVALID_TRANSITION', `Cannot move a job from ${job.currentStatus} to ${input.status}.`);
+  if (!NEXT_STATUS[job.currentStatus].includes(status)) {
+    throw new AppError(409, 'INVALID_TRANSITION', `Cannot move a job from ${job.currentStatus} to ${status}.`);
   }
   const now = new Date().toISOString();
   const patch: Partial<JobDoc> = {
-    currentStatus: input.status,
-    statusHistory: [...job.statusHistory, { status: input.status, at: now, note: input.note }],
+    currentStatus: status,
+    statusHistory: [...job.statusHistory, { status, at: now, note }],
   };
-  if (input.status === 'APPROVED' && job.approvalStatus !== 'APPROVED') {
+  if (status === 'APPROVED' && job.approvalStatus !== 'APPROVED') {
     patch.approvalStatus = 'APPROVED';
     patch.approvedAt = now;
   }
-  const updated = await db.jobs.update(job.jobId, patch);
+  const updated = await (await getDb()).jobs.update(job.jobId, patch);
+  if (!updated) throw new AppError(404, 'JOB_NOT_FOUND', 'Job not found.');
+  return updated;
+}
+
+router.patch('/jobs/:id/status', rateLimit(60), ...ownerWrite(), async (req, res) => {
+  const input = parse(statusSchema, req.body);
+  const job = await (await getDb()).jobs.find(String(req.params.id));
+  if (!job) throw new AppError(404, 'JOB_NOT_FOUND', 'Job not found.');
+  const updated = await applyStatusChange(job, input.status, input.note);
   res.json({ job: updated });
+});
+
+// Bulk status update. Each record is validated independently so one stale or
+// finished job card cannot block the rest; the response reports per-record outcomes.
+router.patch('/jobs/bulk-status', rateLimit(30), ...ownerWrite(), async (req, res) => {
+  const input = parse(bulkStatusSchema, req.body);
+  const db = await getDb();
+  const results: Array<
+    | { jobId: string; ok: true; job: JobDoc }
+    | { jobId: string; ok: false; code: string; message: string }
+  > = [];
+
+  for (const id of [...new Set(input.jobIds)]) {
+    const job = await db.jobs.find(id);
+    if (!job) {
+      results.push({ jobId: id, ok: false, code: 'JOB_NOT_FOUND', message: 'Job not found.' });
+      continue;
+    }
+    try {
+      results.push({ jobId: job.jobId, ok: true, job: await applyStatusChange(job, input.status, input.note) });
+    } catch (error) {
+      if (!(error instanceof AppError)) throw error;
+      results.push({ jobId: job.jobId, ok: false, code: error.code, message: error.message });
+    }
+  }
+
+  const updated = results.filter((result) => result.ok).length;
+  res.json({ updated, failed: results.length - updated, results });
 });
 
 router.get('/dashboard', async (_req, res) => {

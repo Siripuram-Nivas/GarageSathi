@@ -12,9 +12,9 @@
 
 ## Status
 
-- **Phase:** Phase 9 — implementation + competition preparation complete; security hardening applied; deployment pending.
-- **Application state:** Working locally. Mock AI mode by default. Live Gnani Prisma + Timbre verified with one deliberate smoke test (English input); Telugu accuracy still unmeasured. Opt-in session authentication implemented (off by default).
-- **Verification:** 38 server + 4 client tests, typecheck, production build, a manual browser pass, and one live provider smoke test — see `TEST_LOG.md`. Security audit pack in `SECURITY/`. Deployment: not deployed.
+- **Phase:** Phase 10 — UI/UX enhancement & interaction engineering complete; deployment pending.
+- **Application state:** Working locally. Mock AI mode by default. Live Gnani Prisma + Timbre verified with one deliberate smoke test (English input); Telugu accuracy still unmeasured. Opt-in session authentication implemented (off by default). Polished UI: collapsible sidebar, command palette, keyboard shortcuts, skeletons, sortable/paginated jobs table with bulk status, draft autosave/recovery, accessible dialogs, reduced-motion support.
+- **Verification:** 47 server + 18 client tests (65 total), typecheck, production build, manual+scripted browser passes (desktop 1440×900 and mobile 390×780), and one live provider smoke test — see `TEST_LOG.md`. Security audit pack in `SECURITY/`. Deployment: not deployed.
 
 ## Stack
 
@@ -51,10 +51,11 @@
 
 1. Live Prisma/Timbre are verified for connectivity and response handling. Telugu transcription quality, a listening check of Varuni audio, and the full live job flow are still unverified.
 2. TTS in mock mode plays a generated tone, clearly labelled mock (no fake speech).
-3. No automated browser E2E; the flow was validated manually (desktop + mobile).
-4. Authentication is opt-in (`AUTH_ENABLED=false` default). Enable before production and run first-owner bootstrap.
-5. No deployment and no demo video yet; deployment steps are documented only.
-6. MongoDB/Mongoose path is implemented but untested against a real cluster.
+3. No automated browser E2E; the flow was validated manually and with scripted Playwright checks (desktop + mobile).
+4. Authentication is opt-in (`AUTH_ENABLED=false` default). Enable before production and run first-owner bootstrap. The client CSRF echo is unit-tested but not yet exercised with auth enabled end to end.
+5. Bulk status updates are per-record, not transactional; the browser UI was tested up to the confirm dialog without mutating demo data.
+6. No deployment and no demo video yet; deployment steps are documented only.
+7. MongoDB/Mongoose path is implemented but untested against a real cluster.
 
 ## Next steps
 

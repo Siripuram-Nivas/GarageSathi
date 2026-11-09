@@ -19,10 +19,13 @@ flowchart LR
 
 ## Frontend
 
-- Vite SPA, React Router, no SSR. Layout with sidebar + mobile drawer.
-- `lib/api.ts` typed fetch wrapper, `lib/audio.ts` recording + WAV encoding, `lib/format.ts` INR/paise/date helpers.
+- Vite SPA, React Router, no SSR. Layout with collapsible sidebar (persisted), mobile drawer, and command palette.
+- `lib/api.ts` typed fetch wrapper (timeouts, CSRF echo, `ApiError`), `lib/audio.ts` recording + WAV encoding, `lib/format.ts` INR/paise/date helpers.
+- Interaction helpers: `lib/jobs.ts` (filter/sort/paginate), `lib/draft.ts` (sessionStorage draft with TTL), `lib/commands.ts` (palette entries), `lib/hooks.ts` (persisted state, debounce).
+- Reusable UI in `components/ui.tsx`: buttons, fields with `aria-invalid` + `role="alert"`, `Skeleton`, focus-trapped `Modal`, `ConfirmDialog`.
 - Server state fetched per page with small hooks; no global store, no TanStack Query (not needed at this size).
 - Mock/Live badge from `/api/health`.
+- Accessibility: global `:focus-visible` ring, `aria-sort` on sortable headers, combobox/listbox semantics in the palette, `prefers-reduced-motion` disables transitions and page animation.
 
 ## Backend
 

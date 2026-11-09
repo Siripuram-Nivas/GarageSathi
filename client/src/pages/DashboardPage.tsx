@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import { api } from '../lib/api';
 import type { DashboardData } from '../types';
 import { formatINR, statusLabel, statusTone } from '../lib/format';
-import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui';
+import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../components/ui';
 
 const STATUS_COLORS = ['#38bdf8', '#22d3ee', '#fbbf24', '#2dd4bf', '#34d399', '#10b981', '#64748b', '#f87171'];
 
@@ -33,7 +33,34 @@ export default function DashboardPage() {
       </Card>
     );
   }
-  if (!data) return <Spinner label="Loading garage metrics…" />;
+  if (!data) {
+    return (
+      <div aria-busy="true">
+        <PageHeader title="Garage dashboard" subtitle="Loading garage metrics…" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="flex items-center gap-4 p-4">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+            </Card>
+          ))}
+        </div>
+        <div className="mt-6 grid gap-4 xl:grid-cols-5">
+          <Card className="p-4 xl:col-span-3">
+            <Skeleton className="mb-4 h-5 w-52" />
+            <Skeleton className="h-56 w-full" />
+          </Card>
+          <Card className="p-4 xl:col-span-2">
+            <Skeleton className="mb-4 h-5 w-44" />
+            <Skeleton className="h-56 w-full" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const stats = [
     { label: 'Total job cards', value: String(data.totalJobs), icon: ClipboardList, tone: 'text-slate-200' },

@@ -1,5 +1,6 @@
 import type {
   AiStatus,
+  BulkStatusResponse,
   DashboardData,
   Health,
   Job,
@@ -11,6 +12,11 @@ import type {
 } from '../types';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+const DEFAULT_TIMEOUT_MS = 15_000;
+
+// CSRF token is issued by the server on every response when sessions are active.
+// Keeping it in module memory avoids putting it anywhere persistent.
+let csrfToken: string | null = null;
 
 export class ApiError extends Error {
   constructor(
@@ -22,13 +28,29 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const method = (init?.method ?? 'GET').toUpperCase();
+  const headers = new Headers(init?.headers);
+  if (csrfToken && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) {
+    headers.set('X-CSRF-Token', csrfToken);
+  }
+
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, init);
+    res = await fetch(`${BASE}${path}`, { credentials: 'include', ...init, headers, signal: controller.signal });
   } catch {
-    throw new ApiError('Cannot reach the GarageSathi API. Is the server running?', 0, 'NETWORK_ERROR');
+    throw controller.signal.aborted
+      ? new ApiError(`The request timed out after ${Math.round(timeoutMs / 1000)}s. Check the connection and retry.`, 0, 'TIMEOUT')
+      : new ApiError('Cannot reach the GarageSathi API. Is the server running?', 0, 'NETWORK_ERROR');
+  } finally {
+    clearTimeout(timer);
   }
+
+  const issued = res.headers.get('X-CSRF-Token');
+  if (issued) csrfToken = issued;
+
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new ApiError(body?.error?.message || `Request failed (${res.status})`, res.status, body?.error?.code || 'ERROR');
@@ -66,11 +88,11 @@ export const api = {
     const form = new FormData();
     form.append('audio', audio, 'garagesathi.wav');
     form.append('format', format);
-    return request<TranscriptResponse>('/api/voice/transcribe', { method: 'POST', body: form });
+    return request<TranscriptResponse>('/api/voice/transcribe', { method: 'POST', body: form }, 45_000);
   },
 
   speak: async (jobId: string) => {
-    const res = await fetch(`${BASE}/api/voice/speak`, json('POST', { jobId }));
+    const res = await fetch(`${BASE}/api/voice/speak`, { ...json('POST', { jobId }), credentials: 'include' });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       throw new ApiError(body?.error?.message || 'Could not generate confirmation audio.', res.status, 'TTS_ERROR');
@@ -84,18 +106,20 @@ export const api = {
   job: (id: string) => request<{ job: Job }>(`/api/jobs/${id}`),
   updateStatus: (id: string, status: JobStatus, note?: string) =>
     request<{ job: Job }>(`/api/jobs/${id}/status`, json('PATCH', { status, note })),
+  bulkStatus: (jobIds: string[], status: JobStatus, note?: string) =>
+    request<BulkStatusResponse>('/api/jobs/bulk-status', json('PATCH', { jobIds, status, note })),
 
   resetDemo: () => request<{ ok: boolean }>('/api/demo/reset', json('POST', { confirm: true })),
 
   smokeTest: async (audio: Blob) => {
     const form = new FormData();
     form.append('audio', audio, 'smoke.wav');
-    const res = await fetch(`${BASE}/api/ai/smoke-test`, { method: 'POST', body: form });
+    const res = await fetch(`${BASE}/api/ai/smoke-test`, { method: 'POST', body: form, credentials: 'include' });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new ApiError(body?.error?.message || 'Smoke test failed.', res.status, body?.error?.code || 'ERROR');
     return body as {
       stt: { transcript: string; detectedLanguage: string; requestId: string };
-      tts: { bytes: number; contentType: string; audioBase64: string };
+      tts: { bytes: number; contentType: string };
       mode: 'mock' | 'live';
       note: string;
     };

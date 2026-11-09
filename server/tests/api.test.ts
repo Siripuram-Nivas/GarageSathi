@@ -125,4 +125,27 @@ describe('GarageSathi API', () => {
     expect(jobs.body.jobs).toHaveLength(0);
     expect(services.body.services).toHaveLength(6);
   });
+
+  it('bulk updates valid records and reports per-record failures', async () => {
+    const body = { transcript, customerName: 'Bulk Customer', mechanicApproved: true as const };
+    const first = await request(app).post('/api/jobs').send(body).expect(201);
+    await request(app).post('/api/jobs').send({ ...body, customerName: 'Bulk Other' }).expect(201);
+
+    const res = await request(app)
+      .patch('/api/jobs/bulk-status')
+      .send({ jobIds: [first.body.job.jobId, 'GS-9999'], status: 'IN_PROGRESS' })
+      .expect(200);
+    expect(res.body.updated).toBe(1);
+    expect(res.body.failed).toBe(1);
+    expect(res.body.results[0]).toMatchObject({ ok: true, job: { currentStatus: 'IN_PROGRESS' } });
+    expect(res.body.results[1]).toMatchObject({ ok: false, code: 'JOB_NOT_FOUND' });
+
+    const invalid = await request(app)
+      .patch('/api/jobs/bulk-status')
+      .send({ jobIds: [first.body.job.jobId], status: 'COMPLETED' })
+      .expect(200);
+    expect(invalid.body.results[0]).toMatchObject({ ok: false, code: 'INVALID_TRANSITION' });
+
+    await request(app).patch('/api/jobs/bulk-status').send({ jobIds: [], status: 'CANCELLED' }).expect(400);
+  });
 });

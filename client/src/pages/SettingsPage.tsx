@@ -4,7 +4,7 @@ import { Database, KeyRound, RotateCcw, Save, ShieldCheck, Volume2 } from 'lucid
 import { api } from '../lib/api';
 import { readGarage, type GarageIdentity } from '../components/Layout';
 import type { AiStatus } from '../types';
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, Spinner, useToast } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, Field, Input, PageHeader, Spinner, useToast } from '../components/ui';
 
 export default function SettingsPage() {
   const [identity, setIdentity] = useState<GarageIdentity>(readGarage);
@@ -135,23 +135,16 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Modal
+      <ConfirmDialog
         open={confirmReset}
         title="Reset demo data?"
+        confirmLabel="Yes, reset everything"
+        busy={resetting}
+        onConfirm={resetDemo}
         onClose={() => setConfirmReset(false)}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setConfirmReset(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={resetDemo} loading={resetting}>
-              Yes, reset
-            </Button>
-          </>
-        }
       >
         <p>This deletes every saved job card and restores the demo service catalogue. It cannot be undone.</p>
-      </Modal>
+      </ConfirmDialog>
     </div>
   );
 }

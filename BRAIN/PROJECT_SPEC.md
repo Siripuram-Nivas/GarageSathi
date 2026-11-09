@@ -40,12 +40,22 @@ Record a spoken complaint, transcribe it with Gnani Prisma, extract vehicle + se
 - AI Integration Status: provider health, live-test gate, one deliberate smoke test.
 - Mock/Live mode with credit guards (no auto calls, in-flight dedupe).
 
+## UI/UX enhancement (implemented)
+
+- Collapsible desktop sidebar with persisted preference; mobile drawer with Escape/focus handling.
+- Command palette (Ctrl/Cmd+K or `?`) and `g d/j/s/a` + `n` keyboard shortcuts.
+- Skeleton loaders, page transitions, reduced-motion support, Telugu font token.
+- Sortable, debounced-search, paginated job table with row/page selection and bulk status updates.
+- New-job draft autosave/recovery (text only), inline validation, save-failure recovery.
+- Accessible modal + confirmation dialog for destructive actions; 409 conflict refetch.
+
 ## Non-functional
 
 - No secrets in the frontend or logs.
 - Integer paise money; server-authoritative pricing.
 - Zod validation on every write; structured error envelope with request ID.
 - Responsive layout; empty/loading/error states; toasts; accessible contrast.
+- Keyboard-operable controls, visible focus rings, `aria-invalid`/`aria-sort`/dialog semantics, `prefers-reduced-motion` respected.
 - No storage of raw customer recordings.
 
 ## Submission requirements

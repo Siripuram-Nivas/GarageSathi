@@ -14,7 +14,7 @@ I designed and implemented the entire submission in this repository:
 - **Gnani integration:** Prisma v3.0 multipart STT and Timbre v2.5 binary TTS against the official docs, plus an optional, disabled Evon adapter.
 - **Telugu output:** confirmation sentence construction with Telugu number words.
 - **Honesty mechanics:** mock labels in UI and headers, no silent live→mock fallback, two-layer live gate, no raw audio persistence, secrets only server-side.
-- **Quality:** 27 server tests, 4 client tests, typecheck, production build, and a manual browser pass through the whole workflow including mobile.
+- **Quality:** 47 server tests, 18 client tests, typecheck, production build, and manual browser passes through the whole workflow including mobile.
 - **Documentation:** `BRAIN/` (spec, architecture, API contracts, decisions, task board, test log, handoff), `README.md`, `DEPLOYMENT.md`, and this submission pack.
 
 ## How I used AI tooling

@@ -1,12 +1,33 @@
 node_modules/
 dist/
-.env
-.env.local
-*.log
-data/
+build/
 coverage/
+.next/
+.vercel/
+.cache/
+
+# Environment files — never commit real credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Local data and generated output
+data/
+*.log
 *.tsbuildinfo
+uploads/
+temp/
+Thumbs.db
 .DS_Store
+
+# Playwright artifacts
 playwright-report/
 test-results/
 .playwright-mcp/
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12

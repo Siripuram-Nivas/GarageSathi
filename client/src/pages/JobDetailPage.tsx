@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock3, Wrench } from 'lucide-react';
-import { api } from '../lib/api';
+import { ApiError, api } from '../lib/api';
 import type { Job, JobStatus } from '../types';
 import { NEXT_STATUS, formatDate, formatINR, statusLabel, statusTone } from '../lib/format';
-import { Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Skeleton, useToast } from '../components/ui';
 import { SpeakButton } from '../components/SpeakButton';
 
 export default function JobDetailPage() {
@@ -17,6 +17,7 @@ export default function JobDetailPage() {
   const [note, setNote] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     api
@@ -28,6 +29,7 @@ export default function JobDetailPage() {
   async function applyStatus() {
     if (!job || !nextStatus) return;
     setSaving(true);
+    setActionError('');
     try {
       const { job: updated } = await api.updateStatus(job.jobId, nextStatus, note || undefined);
       setJob(updated);
@@ -36,7 +38,20 @@ export default function JobDetailPage() {
       setConfirming(false);
       push(`Status updated to ${statusLabel(updated.currentStatus)}.`, 'success');
     } catch (e) {
+      setActionError((e as Error).message);
       push((e as Error).message, 'error');
+      // Someone else moved this job first: reload so the mechanic sees the real state.
+      if (e instanceof ApiError && e.status === 409) {
+        api
+          .job(id)
+          .then(({ job: fresh }) => {
+            setJob(fresh);
+            setNextStatus('');
+            setNote('');
+            setConfirming(false);
+          })
+          .catch(() => {});
+      }
     } finally {
       setSaving(false);
     }
@@ -52,7 +67,38 @@ export default function JobDetailPage() {
       </Card>
     );
   }
-  if (!job) return <Spinner label="Loading job card…" />;
+  if (!job) {
+    return (
+      <div aria-busy="true">
+        <PageHeader title="Job card" subtitle="Loading job card…" />
+        <div className="grid gap-4 xl:grid-cols-3">
+          <div className="space-y-4 xl:col-span-2">
+            <Card className="space-y-4 p-5">
+              <Skeleton className="h-6 w-48" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="space-y-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))}
+              </div>
+              <Skeleton className="h-20 w-full" />
+            </Card>
+            <Card className="p-5">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="mt-4 h-24 w-full" />
+            </Card>
+          </div>
+          <Card className="space-y-3 p-5">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const allowed = NEXT_STATUS[job.currentStatus];
 
@@ -192,7 +238,14 @@ export default function JobDetailPage() {
                 <Field label="Note (optional)">
                   <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Brake pads replaced" />
                 </Field>
-                <Button className="w-full" disabled={!nextStatus} onClick={() => setConfirming(true)}>
+                <Button
+                  className="w-full"
+                  disabled={!nextStatus}
+                  onClick={() => {
+                    setActionError('');
+                    setConfirming(true);
+                  }}
+                >
                   Update status
                 </Button>
               </div>
@@ -222,15 +275,16 @@ export default function JobDetailPage() {
 
       <Modal
         open={confirming}
-        title="Confirm status change"
+        title={nextStatus === 'CANCELLED' ? 'Cancel this job?' : 'Confirm status change'}
         onClose={() => setConfirming(false)}
+        dismissOnBackdrop={false}
         footer={
           <>
-            <Button variant="ghost" onClick={() => setConfirming(false)}>
-              Cancel
+            <Button variant="ghost" onClick={() => setConfirming(false)} disabled={saving}>
+              Keep current status
             </Button>
-            <Button onClick={applyStatus} loading={saving}>
-              Confirm {nextStatus ? statusLabel(nextStatus) : ''}
+            <Button variant={nextStatus === 'CANCELLED' ? 'danger' : 'primary'} onClick={applyStatus} loading={saving}>
+              {nextStatus === 'CANCELLED' ? 'Cancel job' : `Confirm ${nextStatus ? statusLabel(nextStatus) : ''}`}
             </Button>
           </>
         }
@@ -239,7 +293,18 @@ export default function JobDetailPage() {
           Move <strong className="text-white">{job.jobId}</strong> from <strong className="text-white">{statusLabel(job.currentStatus)}</strong> to{' '}
           <strong className="text-white">{nextStatus ? statusLabel(nextStatus) : '—'}</strong>?
         </p>
-        <p className="mt-2 text-xs text-slate-500">The change is recorded in the job's status history.</p>
+        {nextStatus === 'CANCELLED' ? (
+          <p className="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+            Cancelling is final: the job cannot be reopened from this screen, and it is excluded from approved revenue.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-slate-500">The change is recorded in the job's status history.</p>
+        )}
+        {actionError && (
+          <p role="alert" className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+            {actionError}
+          </p>
+        )}
       </Modal>
     </div>
   );
