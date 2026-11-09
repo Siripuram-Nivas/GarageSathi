@@ -19,7 +19,10 @@ describe('GarageSathi API', () => {
   it('returns the seeded catalogue', async () => {
     const res = await request(app).get('/api/services').expect(200);
     expect(res.body.services).toHaveLength(6);
-    expect(res.body.services.find((s: any) => s.name === 'General Service').pricePaise).toBe(60_000);
+    const general = res.body.services.find((s: any) => s.name === 'General Service');
+    expect(general.pricePaise).toBe(60_000);
+    expect(general.defaultPricePaise).toBe(60_000);
+    expect(general.priceOverridden).toBe(false);
   });
 
   it('uses the mock transcription provider, clearly labelled', async () => {
@@ -147,5 +150,65 @@ describe('GarageSathi API', () => {
     expect(invalid.body.results[0]).toMatchObject({ ok: false, code: 'INVALID_TRANSITION' });
 
     await request(app).patch('/api/jobs/bulk-status').send({ jobIds: [], status: 'CANCELLED' }).expect(400);
+  });
+
+  it('lets a garage override only its own price, keeping defaults and snapshots intact', async () => {
+    const catalogue = await request(app).get('/api/services').expect(200);
+    const battery = catalogue.body.services.find((s: any) => s.name === 'Battery Inspection');
+    expect(battery.pricePaise).toBe(10_000);
+
+    // Approve a job before the price changes; it must keep this snapshot.
+    const created = await request(app)
+      .post('/api/jobs')
+      .send({ transcript, customerName: 'Snapshot Customer', mechanicApproved: true })
+      .expect(201);
+    const snapshotJobId = created.body.job.jobId;
+    expect(created.body.job.estimateTotalPaise).toBe(55_000);
+
+    const updated = await request(app)
+      .patch(`/api/services/${battery.id}/price`)
+      .send({ pricePaise: 20_000 })
+      .expect(200);
+    expect(updated.body.service).toMatchObject({ pricePaise: 20_000, defaultPricePaise: 10_000, priceOverridden: true });
+
+    // New estimates use the garage price; the central default is untouched.
+    const after = await request(app).get('/api/services').expect(200);
+    const batteryAfter = after.body.services.find((s: any) => s.id === battery.id);
+    expect(batteryAfter.pricePaise).toBe(20_000);
+    expect(batteryAfter.defaultPricePaise).toBe(10_000);
+    const preview = await request(app).post('/api/jobs/preview').send({ transcript }).expect(200);
+    expect(preview.body.estimateTotalPaise).toBe(65_000);
+
+    // The old job card still holds the price snapshot taken at approval.
+    const saved = await request(app).get(`/api/jobs/${snapshotJobId}`).expect(200);
+    expect(saved.body.job.estimateTotalPaise).toBe(55_000);
+    expect(saved.body.job.serviceItems.find((i: any) => i.serviceId === battery.id).unitPricePaise).toBe(10_000);
+
+    // Re-editable, and the browser cannot smuggle a garage id.
+    const reEdited = await request(app)
+      .patch(`/api/services/${battery.id}/price`)
+      .send({ pricePaise: 12_500, garageId: 'another-garage' })
+      .expect(200);
+    expect(reEdited.body.service.pricePaise).toBe(12_500);
+
+    await request(app).patch(`/api/services/${battery.id}/price`).send({ pricePaise: 10_000 }).expect(200);
+    await request(app).post('/api/demo/reset').send({ confirm: true }).expect(200);
+  });
+
+  it('rejects invalid prices and arbitrary catalogue definitions', async () => {
+    const catalogue = await request(app).get('/api/services').expect(200);
+    const service = catalogue.body.services[0];
+
+    for (const pricePaise of [-1, 5.5, 10_000_001, 'abc']) {
+      await request(app).patch(`/api/services/${service.id}/price`).send({ pricePaise }).expect(400);
+    }
+    await request(app)
+      .patch('/api/services/does-not-exist/price')
+      .send({ pricePaise: 9_999 })
+      .expect(404);
+
+    // Owners cannot create or rename canonical definitions.
+    await request(app).post('/api/services').send({ name: 'Invented Service', pricePaise: 5000 }).expect(404);
+    await request(app).patch(`/api/services/${service.id}`).send({ name: 'Renamed' }).expect(404);
   });
 });

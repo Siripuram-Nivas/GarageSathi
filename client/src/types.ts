@@ -14,6 +14,9 @@ export interface Service {
   description: string;
   aliases: string[];
   pricePaise: number;
+  /** Central catalogue price; never changed by a garage override. */
+  defaultPricePaise: number;
+  priceOverridden: boolean;
   category: string;
   isActive: boolean;
   createdAt: string;

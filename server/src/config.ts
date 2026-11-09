@@ -27,6 +27,9 @@ export const config = {
     cookieName: 'gs_session',
     cookieMaxAgeMs: 1000 * 60 * 60 * 8, // 8 hours
   },
+  // Single-garage deployment scope. The API always resolves this server-side;
+  // a garage id sent by the browser is ignored.
+  garageId: process.env.GARAGE_ID?.trim() || 'default',
   // One-time bootstrap token. Required to create the first owner. Disabled after use.
   setupToken: process.env.GARAGE_SETUP_TOKEN?.trim() || '',
   gnani: {

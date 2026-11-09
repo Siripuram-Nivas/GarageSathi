@@ -22,3 +22,14 @@ Format: decision — reason — alternatives — consequences — date.
 18. **Drafts autosave text only to `sessionStorage`, with a 24 h TTL** — never lose typed work, never persist audio — localStorage rejected (drafts are per-tab and end with the session), IndexedDB rejected (overkill) — restoring a draft always drops to `review` so prices are re-fetched from the server — 2026-11-09.
 19. **Bulk status updates are per-record, not transactional** — one stale or completed job must not block the rest — all-or-nothing rejected — response returns per-record results and the UI reports skipped records — 2026-11-09.
 20. **Sidebar preference in `localStorage`; CSRF token in module memory** — UI preference should survive reloads, a security token should not be persisted — 2026-11-09.
+21. **GarageSathi owns the predefined service catalogue** — garage staff never edit canonical definitions; only platform-admin can manage them — 2026-11-09.
+22. **Garage owners do not write service names, categories or aliases** — all definitions are centrally owned and immutable — 2026-11-09.
+23. **Garage owners can edit their own service prices** — price overrides stored per-garage, central default unchanged, re-editable via protected route — 2026-11-09.
+24. **Garage-specific price overrides do not change central defaults** — central catalogue price stays constant; overrides only affect that garage's estimates — 2026-11-09.
+25. **Approved job cards retain historical price snapshots** — unit price snapshot written at approval; later price edits never rewrite saved jobs — 2026-11-09.
+26. **Service selection supports search, click/tap and optional drag-and-drop** — combobox with arrow/Enter/Escape, click add, progressive enhancement DnD — 2026-11-09.
+27. **AI technical diagnostics are moved out of the primary garage-owner UI** — gated by auth; only signed-in owner sees Advanced/Developer diagnostics — 2026-11-09.
+28. **The persistent sidebar command-search field is removed, but keyboard command-palette access is retained** — Ctrl/Cmd+K works only by shortcut or deliberate menu action — 2026-11-09.
+29. **Ice Silver, Deep Aubergine and Marigold remain the brand palette** — use restrained, selective glass styling without compromising contrast — 2026-11-09.
+30. **Existing security and Gnani integrations must remain functional** — no weakening of auth, rate limits, headers, CSP, CORS, CSRF; Gnani key stays server-only — 2026-11-09.
+31. **Use selective glassmorphism with the Ice Silver / Deep Aubergine / Marigold palette** — semantic tokens and reusable surface classes keep styling consistent; blur is limited to suitable panels/chrome, while dense content and controls stay high-opacity for readability — 2026-11-09.

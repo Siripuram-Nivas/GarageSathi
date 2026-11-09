@@ -18,6 +18,20 @@ export interface ServiceItem {
   lineTotalPaise: number;
 }
 
+/**
+ * A garage's price for one centrally-defined service. Service definitions stay
+ * in ServiceDoc; this record only overrides the price for a single garage.
+ */
+export interface GaragePriceDoc {
+  id: string;
+  garageId: string;
+  serviceId: string;
+  pricePaise: number;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OwnerRecord {
   id: string;
   username: string;
@@ -98,6 +112,11 @@ export interface DataLayer {
   auth: {
     get(): Promise<OwnerRecord | null>;
     create(input: { username: string; passwordHash: string }): Promise<OwnerRecord>;
+    reset(): Promise<void>;
+  };
+  garagePrices: {
+    list(garageId: string): Promise<GaragePriceDoc[]>;
+    upsert(input: { garageId: string; serviceId: string; pricePaise: number; updatedBy: string }): Promise<GaragePriceDoc>;
     reset(): Promise<void>;
   };
   nextJobSeq(): Promise<number>;

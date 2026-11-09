@@ -60,7 +60,7 @@ export default function JobDetailPage() {
   if (error) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-rose-300">{error}</p>
+        <p className="text-rose-600">{error}</p>
         <Button className="mt-4" variant="secondary" onClick={() => navigate('/jobs')}>
           Back to job cards
         </Button>
@@ -105,8 +105,8 @@ export default function JobDetailPage() {
   return (
     <div>
       <PageHeader
-        title={`Job ${job.jobId}`}
-        subtitle={`Created ${formatDate(job.createdAt)} · ${job.aiMode === 'live' ? 'Live Gnani' : 'Mock'} intake`}
+        title={`Job {job.jobId}`}
+        subtitle={`Created {formatDate(job.createdAt)} · {job.aiMode === 'live' ? 'Live Gnani' : 'Mock'} intake`}
         actions={
           <Link to="/jobs">
             <Button variant="secondary">
@@ -121,8 +121,8 @@ export default function JobDetailPage() {
           <Card className="p-5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={statusTone(job.currentStatus)}>{statusLabel(job.currentStatus)}</Badge>
-              <Badge tone={job.approvalStatus === 'APPROVED' ? 'teal' : 'amber'}>{job.approvalStatus === 'APPROVED' ? 'Estimate approved' : 'Awaiting approval'}</Badge>
-              {job.aiMode === 'mock' && <Badge tone="amber">MOCK INTAKE</Badge>}
+              <Badge tone={job.approvalStatus === 'APPROVED' ? 'aubergine' : 'marigold'}>{job.approvalStatus === 'APPROVED' ? 'Estimate approved' : 'Awaiting approval'}</Badge>
+              {job.aiMode === 'mock' && <Badge tone="marigold">MOCK INTAKE</Badge>}
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -135,9 +135,9 @@ export default function JobDetailPage() {
             </div>
 
             <div className="mt-5">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Customer-reported complaint</p>
-              <p className="mt-1 rounded-xl border border-ink-600 bg-ink-900/50 p-3 text-sm text-slate-300">{job.customerComplaint || '—'}</p>
-              <p className="mt-1 text-xs text-slate-500">Not a mechanical diagnosis. Final findings belong in mechanic notes after inspection.</p>
+              <p className="text-xs uppercase tracking-wide text-muted">Customer-reported complaint</p>
+              <p className="mt-1 rounded-xl border border-border bg-white p-3 text-sm text-deep-aubergine">{job.customerComplaint || '—'}</p>
+              <p className="mt-1 text-xs text-muted">Not a mechanical diagnosis. Final findings belong in mechanic notes after inspection.</p>
             </div>
 
             {job.symptoms.length > 0 && (
@@ -151,8 +151,8 @@ export default function JobDetailPage() {
             )}
 
             {job.unresolvedItems.length > 0 && (
-              <div className="mt-4 rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-200">
-                <p className="font-medium text-amber-300">Unresolved service terms</p>
+              <div className="mt-4 rounded-xl border border-marigold/30 bg-marigold/5 p-3 text-sm text-marigold">
+                <p className="font-medium text-marigold">Unresolved service terms</p>
                 <ul className="mt-1 list-inside list-disc">
                   {job.unresolvedItems.map((item) => (
                     <li key={item}>{item}</li>
@@ -163,49 +163,49 @@ export default function JobDetailPage() {
 
             {job.mechanicNotes && (
               <div className="mt-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Mechanic notes</p>
-                <p className="mt-1 text-sm text-slate-300">{job.mechanicNotes}</p>
+                <p className="text-xs uppercase tracking-wide text-muted">Mechanic notes</p>
+                <p className="mt-1 text-sm text-deep-aubergine">{job.mechanicNotes}</p>
               </div>
             )}
 
-            <details className="mt-5 rounded-xl border border-ink-600 p-3">
-              <summary className="cursor-pointer text-sm text-slate-400">Original transcript (preserved)</summary>
-              <p className="mt-2 text-sm text-slate-300">{job.originalTranscript}</p>
+            <details className="mt-5 rounded-xl border border-border bg-white p-3">
+              <summary className="cursor-pointer text-sm text-muted">Original transcript (preserved)</summary>
+              <p className="mt-2 text-sm text-deep-aubergine">{job.originalTranscript}</p>
             </details>
           </Card>
 
           <Card className="overflow-hidden">
-            <div className="border-b border-ink-700 px-4 py-3">
-              <h2 className="flex items-center gap-2 font-medium text-slate-200">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-2 font-medium text-deep-aubergine font-serif">
                 <Wrench size={16} /> Service estimate
               </h2>
-              <p className="text-xs text-slate-500">Prices are a snapshot of the catalogue at approval time.</p>
+              <p className="text-xs text-muted">Prices are a snapshot of the catalogue at approval time.</p>
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr className="text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-2 font-medium">Service</th>
                   <th className="px-4 py-2 font-medium">Qty</th>
                   <th className="px-4 py-2 font-medium">Unit</th>
                   <th className="px-4 py-2 text-right font-medium">Line total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700">
+              <tbody className="divide-y divide-border">
                 {job.serviceItems.map((item) => (
                   <tr key={item.serviceId}>
-                    <td className="px-4 py-2.5 text-slate-200">{item.serviceName}</td>
-                    <td className="px-4 py-2.5 text-slate-400">{item.quantity}</td>
-                    <td className="px-4 py-2.5 text-slate-400">{formatINR(item.unitPricePaise)}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-200">{formatINR(item.lineTotalPaise)}</td>
+                    <td className="px-4 py-2.5 text-deep-aubergine">{item.serviceName}</td>
+                    <td className="px-4 py-2.5 text-muted">{item.quantity}</td>
+                    <td className="px-4 py-2.5 text-muted">{formatINR(item.unitPricePaise)}</td>
+                    <td className="px-4 py-2.5 text-right text-deep-aubergine">{formatINR(item.lineTotalPaise)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-ink-600">
-                  <td colSpan={3} className="px-4 py-3 text-right text-slate-400">
+                <tr className="border-t border-border">
+                  <td colSpan={3} className="px-4 py-3 text-right text-muted">
                     Estimated total
                   </td>
-                  <td className="px-4 py-3 text-right text-lg font-semibold text-teal-300">{formatINR(job.estimateTotalPaise)}</td>
+                  <td className="px-4 py-3 text-right text-lg font-semibold text-deep-aubergine">{formatINR(job.estimateTotalPaise)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -214,15 +214,15 @@ export default function JobDetailPage() {
 
         <div className="space-y-4">
           <Card className="p-5">
-            <h2 className="text-sm font-medium text-slate-200">Telugu confirmation</h2>
-            <p className="mt-1 text-xs text-slate-500">Job number and amount are spoken in Telugu words.</p>
+            <h2 className="text-sm font-medium text-deep-aubergine font-serif">Telugu confirmation</h2>
+            <p className="mt-1 text-xs text-muted">Job number and amount are spoken in Telugu words.</p>
             <div className="mt-3">
               <SpeakButton jobId={job.jobId} />
             </div>
           </Card>
 
           <Card className="p-5">
-            <h2 className="text-sm font-medium text-slate-200">Update status</h2>
+            <h2 className="text-sm font-medium text-deep-aubergine font-serif">Update status</h2>
             {allowed.length ? (
               <div className="mt-3 space-y-3">
                 <Field label="Move to">
@@ -250,21 +250,21 @@ export default function JobDetailPage() {
                 </Button>
               </div>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">This job is in a final state. No further transitions are allowed.</p>
+              <p className="mt-2 text-sm text-muted">This job is in a final state. No further transitions are allowed.</p>
             )}
           </Card>
 
           <Card className="p-5">
-            <h2 className="flex items-center gap-2 text-sm font-medium text-slate-200">
+            <h2 className="flex items-center gap-2 text-sm font-medium text-deep-aubergine font-serif">
               <Clock3 size={15} /> Status history
             </h2>
             <ol className="mt-3 space-y-3">
               {job.statusHistory.map((event, index) => (
-                <li key={`${event.status}-${index}`} className="relative border-l border-ink-600 pl-4">
-                  <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full border-2 border-ink-850 bg-teal-400" />
-                  <p className="text-sm text-slate-200">{statusLabel(event.status)}</p>
-                  <p className="text-xs text-slate-500">{formatDate(event.at)}</p>
-                  {event.note && <p className="mt-0.5 text-xs text-slate-400">{event.note}</p>}
+                <li key={`${event.status}-${index}`} className="relative border-l border-border pl-4">
+                  <span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-marigold" />
+                  <p className="text-sm text-deep-aubergine">{statusLabel(event.status)}</p>
+                  <p className="text-xs text-muted">{formatDate(event.at)}</p>
+                  {event.note && <p className="mt-0.5 text-xs text-muted">{event.note}</p>}
                 </li>
               ))}
             </ol>
@@ -284,24 +284,24 @@ export default function JobDetailPage() {
               Keep current status
             </Button>
             <Button variant={nextStatus === 'CANCELLED' ? 'danger' : 'primary'} onClick={applyStatus} loading={saving}>
-              {nextStatus === 'CANCELLED' ? 'Cancel job' : `Confirm ${nextStatus ? statusLabel(nextStatus) : ''}`}
+              {nextStatus === 'CANCELLED' ? 'Cancel job' : `Confirm {nextStatus ? statusLabel(nextStatus) : ''}`}
             </Button>
           </>
         }
       >
         <p>
-          Move <strong className="text-white">{job.jobId}</strong> from <strong className="text-white">{statusLabel(job.currentStatus)}</strong> to{' '}
-          <strong className="text-white">{nextStatus ? statusLabel(nextStatus) : '—'}</strong>?
+          Move <strong className="text-deep-aubergine">{job.jobId}</strong> from <strong className="text-deep-aubergine">{statusLabel(job.currentStatus)}</strong> to{' '}
+          <strong className="text-deep-aubergine">{nextStatus ? statusLabel(nextStatus) : '—'}</strong>?
         </p>
         {nextStatus === 'CANCELLED' ? (
-          <p className="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+          <p className="mt-2 rounded-xl border border-rose-300 bg-rose-50 p-2 text-xs text-rose-700">
             Cancelling is final: the job cannot be reopened from this screen, and it is excluded from approved revenue.
           </p>
         ) : (
-          <p className="mt-2 text-xs text-slate-500">The change is recorded in the job's status history.</p>
+          <p className="mt-2 text-xs text-muted">The change is recorded in the job's status history.</p>
         )}
         {actionError && (
-          <p role="alert" className="mt-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-xs text-rose-200">
+          <p role="alert" className="mt-3 rounded-xl border border-rose-300 bg-rose-50 p-2 text-xs text-rose-700">
             {actionError}
           </p>
         )}
@@ -313,8 +313,8 @@ export default function JobDetailPage() {
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-0.5 text-sm text-slate-200">{value}</p>
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-0.5 text-sm text-deep-aubergine">{value}</p>
     </div>
   );
 }

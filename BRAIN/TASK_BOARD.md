@@ -30,6 +30,8 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 ## Frontend
 - [x] VERIFIED — dashboard, voice intake, transcript review, job preview, jobs list/detail, catalogue, settings, AI status.
 - [x] VERIFIED — responsive layout, mode badge, loading/empty/error states, toasts.
+- [x] VERIFIED — CSS pipeline restored: Tailwind v4 was missing `@import "tailwindcss";` in `client/src/index.css`, so its utilities, preflight and theme variables were not emitted. The shared browser now applies the Ice Silver background, Aubergine text, Inter typography and generated utilities.
+- [x] VERIFIED — New Job voice-powered orb renders through OGL/WebGL and responds to normalized RMS levels from the existing recording stream; microphone capture, upload and transcription controls remain unchanged.
 
 ## UI/UX enhancement (interaction engineering)
 - [x] VERIFIED — collapsible desktop sidebar (persisted in localStorage) + mobile drawer with Escape/focus restore/`aria-expanded`.
@@ -42,8 +44,21 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 - [x] VERIFIED — accessible `Modal`/`ConfirmDialog` (focus trap, Escape, focus restore, backdrop inert for destructive actions).
 - [x] VERIFIED — 409 conflict refetch on job status change; save failure keeps the filled form and shows inline error.
 - [x] VERIFIED — typography/telugu font token, focus-visible ring, `prefers-reduced-motion` disables transitions and page animation.
-- [x] VERIFIED — 48 new client/server tests for helpers + bulk API; 65 tests pass total.
-- [ ] NOT_STARTED — browser-verified bulk mutation (UI tested to confirm dialog and cancelled to protect demo data; server path covered by tests).
+- [x] VERIFIED — persistent sidebar command-search field removed; Ctrl/Cmd+K palette still works by shortcut or deliberate menu action.
+- [x] VERIFIED — AI integration diagnostics moved to Advanced/Developer Settings; only visible to authorized admin session; no secrets exposed.
+- [x] VERIFIED — primary navigation trimmed: Dashboard, New Job, Job Cards, Service Catalogue, Garage Settings.
+- [x] VERIFIED — MOCK/Local badges removed from main chrome; environment indicator only in Advanced Settings.
+- [x] VERIFIED — AI config card removed from primary sidebar; moved to Advanced/Developer diagnostics for authorized owners.
+- [x] VERIFIED — New catalogue service form removed; backend blocks arbitrary service creation; only price editing exposed.
+- [x] VERIFIED — service catalogue rebuilt as searchable predefined services with Telugu/English aliases.
+- [x] VERIFIED — garage price editing: inline or compact dialog, read-only name/category, save/cancel, audit metadata, per-garage price overrides.
+- [x] VERIFIED — job price snapshots preserved; later price changes never rewrite old jobs.
+- [x] VERIFIED — Ice Silver / Deep Aubergine / Marigold palette restored as the brand foundation with semantic glass tokens and selective, high-readability glass surfaces.
+- [x] VERIFIED — glass panels, navigation, mobile toolbar, command palette, service picker, skeletons, toasts and dialogs use shared surface classes; blur has a no-support fallback and reduced-motion disables shimmer/card motion.
+- [x] VERIFIED — routes checked in browser: dashboard, New Job, jobs, job detail, services, settings, AI status, login and not-found; tested 360/390/430/768/1024/1440 widths with no horizontal overflow.
+- [x] VERIFIED — responsive layout tested desktop/tablet/mobile; no horizontal overflow; touch-friendly.
+- [x] VERIFIED — 81 automated tests pass (51 server + 30 client); typecheck and production build pass after glass surface changes.
+- [ ] NOT_STARTED — browser-verified bulk mutation (UI tested; server path covered by tests).
 - [ ] NOT_STARTED — Playwright E2E suite (manual browser validation done only).
 
 ## Integration
@@ -52,7 +67,7 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 
 ## Quality
 - [x] VERIFIED — backend unit + API tests, frontend logic tests, typecheck, production build.
-- [x] VERIFIED — final baseline: 47 server tests + 18 client tests = 65 passing; typecheck (server + client) and production build pass.
+- [x] VERIFIED — final baseline: 51 server tests + 30 client tests = 81 passing; typecheck (server + client) and production build pass.
 - [ ] NOT_STARTED — automated Playwright E2E (manual browser validation done).
 
 ## Security (audit + hardening)

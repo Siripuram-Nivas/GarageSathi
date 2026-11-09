@@ -63,11 +63,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-ink-600 bg-ink-850 shadow-2xl"
+        className="glass-popover w-full max-w-lg overflow-hidden rounded-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-2 border-b border-ink-700 px-4 py-3">
-          <Search size={16} className="text-slate-500" />
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <Search size={16} className="text-muted" />
           <input
             ref={inputRef}
             value={query}
@@ -79,9 +79,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             aria-expanded="true"
             aria-controls="command-list"
             aria-activedescendant={results[active] ? `command-${results[active].id}` : undefined}
-            className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+            className="w-full bg-transparent text-sm text-deep-aubergine placeholder:text-muted focus:outline-none"
           />
-          <kbd className="rounded border border-ink-600 px-1.5 py-0.5 text-[10px] text-slate-500">esc</kbd>
+          <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">esc</kbd>
         </div>
 
         <ul id="command-list" role="listbox" aria-label="Commands" className="max-h-80 overflow-y-auto p-2 scrollbar-thin">
@@ -95,22 +95,22 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               onClick={() => run(command.to)}
               className={cn(
                 'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm',
-                index === active ? 'bg-teal-400/10 text-teal-100' : 'text-slate-300 hover:bg-ink-800',
+                index === active ? 'bg-marigold/10 text-marigold' : 'text-deep-aubergine hover:bg-ice-silver',
               )}
             >
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{command.label}</span>
-                <span className="block truncate text-xs text-slate-500">{command.hint}</span>
+                <span className="block truncate text-xs text-muted">{command.hint}</span>
               </span>
               {command.keys && (
-                <kbd className="rounded border border-ink-600 px-1.5 py-0.5 text-[10px] text-slate-500">{command.keys}</kbd>
+                <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted">{command.keys}</kbd>
               )}
             </li>
           ))}
-          {!results.length && <li className="px-3 py-4 text-sm text-slate-400">No matches.</li>}
+          {!results.length && <li className="px-3 py-4 text-sm text-muted">No matches.</li>}
         </ul>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-ink-700 px-4 py-2 text-[11px] text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-2 text-[11px] text-muted">
           <span>↑↓ navigate</span>
           <span>↵ open</span>
           <span>esc close</span>

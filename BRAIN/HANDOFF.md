@@ -4,15 +4,53 @@ Last updated: 2026-11-09.
 
 ## Where the project stands
 
-GarageSathi is built end to end and runs locally in mock mode. The full workflow was validated in a browser; **65 automated tests pass (47 server + 18 client)**, and typecheck and production build pass. Documentation, the submission pack, and the security audit pack are written.
+GarageSathi is built end to end and runs locally in mock mode. The full workflow was validated in a browser; **81/81 automated tests pass (51 server + 30 client)**, typecheck and production build pass, and the visual redesign has been implemented with the mandatory Ice Silver #DDE3E8, Deep Aubergine #3A0F34, and Marigold #EAAA00 palette replacing the previous graphite+teal system. Documentation, the submission pack, and the security audit pack are written.
+
+### Verified local runtime
+- Frontend: `http://localhost:5173` (verified live, root Vite instance after clearing stale duplicate processes)
+- Backend: `http://localhost:4000`
+- Health check: `http://localhost:4000/api/health`
+- Root cause of the unstyled-page bug: `client/src/index.css` lacked Tailwind v4's required `@import "tailwindcss";`, so Tailwind utilities, preflight and `@theme` variables were not emitted. The shared browser now verifies Inter typography, Ice Silver canvas, Aubergine text and generated utilities. The earlier stale-server diagnosis was incorrect; port cleanup alone did not fix the page.
+
+### Palette — Ice Silver / Deep Aubergine / Marigold (mandatory)
+- **Ice Silver #DDE3E8**: Main app canvas, page background, broad light surfaces
+- **Deep Aubergine #3A0F34**: Brand anchor, primary text, navigation, strong panels, headings
+- **Marigold #EAAA00**: Primary action accent, key highlights, active markers, important emphasis
+- **White #FFFFFF**: Cards, inputs, elevated surfaces
+- **Ink #241D27**: Long-form readable text where needed
+- **Muted #66717D**: Secondary text on light backgrounds
+- **Border #C4CDD5**: Subtle separators and borders
+
+### Design System — Complete retheme from graphite+teal to Ice Silver / Deep Aubergine / Marigold
+- **Phase B**: Theme foundation — centralized design tokens with exact hex values in `client/src/index.css`; replaced all old graphite/teal Tailwind tokens; verified contrast and accessibility
+- **Phase C**: App shell — sidebar redesigned with Deep Aubergine dominant, Marigold accent; navigation Ike Silver canvas
+- **Phase D**: Pages — dashboard, voice job intake, service catalogue, job cards, settings redesigned with new palette
+- **Phase E**: Motion and responsive — restrained transitions, mobile/tablet/desktop testing
+- **Phase F**: Regression — 81/81 tests pass, production build clean; full job workflow and role permissions verified
+
+### Test coverage
+- **51 server tests**: security, units, auth integration, API endpoints
+- **30 client tests**: audio, commands, draft, format, jobs, API, theme, catalogue
+- All 81 tests pass; no regressions from visual redesign
+
+### Palette compliance
+- Exact Ice Silver #DDE3E8 used as main canvas
+- Exact Deep Aubergine #3A0F34 used for primary text, navigation, strong panels
+- Exact Marigold #EAAA00 used for primary action accent, key highlights
+- Old graphite/teal colors completely removed from active application styling
+- Contrast verified: Deep Aubergine text on Ice Silver; white text on Deep Aubergine; Marigold with appropriate contrast
+- Focus-ring: Deep Aubergine on light surfaces
+- No ice-silver, aubergine, or marigold substituted; mandatory brand palette is enforced
 
 **Security hardening applied (opt-in, off by default):**
 - Argon2id password hashing + one-time owner bootstrap (`server/src/auth.ts`, `server/src/authRoutes.ts`)
 - Session-based auth (`express-session`), login/logout/me, CSRF double-submit protection (`X-CSRF-Token`)
-- Write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`) require owner session + CSRF when `AUTH_ENABLED=true`
+- Write routes (`PATCH /api/services/:id/price`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`) require owner session + CSRF when `AUTH_ENABLED=true`
 - Helmet security headers + CSP; strict CORS allowlist; stricter audio rate limit; smoke test no longer returns raw audio base64
 
-**UI/UX enhancement (uncommitted):** collapsible sidebar with persistence, mobile drawer, command palette (Ctrl/Cmd+K, `?`), `g`-prefixed shortcuts, skeleton loaders, sortable/paginated jobs table with bulk status updates, draft autosave + recovery on the new-job flow, inline validation, accessible modals/confirm dialogs, reduced-motion support and a Telugu font token. Details in `TEST_LOG.md`.
+**UI/UX enhancement (complete):** collapsible sidebar with persistence, mobile drawer, command palette (Ctrl/Cmd+K, `?`), `g`-prefixed shortcuts, skeleton loaders, sortable/paginated jobs table with bulk status updates, draft autosave + recovery on the new-job flow, inline validation, accessible modals/confirm dialogs, reduced-motion support and Telugu font token, predefined service catalogue with searchable dropdown, garage price editing with inline editor + save/cancel, and selective glassmorphism on the Ice Silver `#DDE3E8` / Deep Aubergine `#3A0F34` / Marigold `#EAAA00` brand palette. Shared glass tokens live in `client/src/index.css`; dense content and controls remain high-opacity, blur has a fallback, and reduced motion disables shimmer/card transitions. The persistent sidebar search field remains removed (Ctrl/Cmd+K still works by shortcut); AI diagnostics remain in Advanced/Developer Settings. Details in `TEST_LOG.md`.
+
+**Voice orb:** New Job recording now uses an OGL/WebGL orb whose motion follows RMS levels from the existing recorder. It does not open a second microphone stream; upload and transcription controls are unchanged. Browser verified WebGL2 rendering; microphone capture itself remains untested in this pass.
 
 **Not done:** Telugu-clip verification through the live UI, enabling auth in production, deployment, demo video, automated E2E, end-to-end CSRF check with auth on.
 
@@ -111,4 +149,3 @@ New auth-related variables (placeholders in `.env.example`): `AUTH_ENABLED`, `AU
 - `SECURITY/ACCESS_CONTROL_MATRIX.md` — route access matrix
 - `SECURITY/REMEDIATION_LOG.md` — every change made
 - `SECURITY/SECURITY_TEST_MATRIX.md` — test results
-

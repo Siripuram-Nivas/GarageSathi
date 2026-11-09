@@ -45,10 +45,16 @@ Authentication is disabled by default (`AUTH_ENABLED=false`) and preserves exist
 - `GET /api/auth/me` — returns the current session user or 401.
 
 **Access control (when `AUTH_ENABLED=true`):**
-- Protected write routes require an owner session + `X-CSRF-Token` header: `POST /api/services`, `PATCH /api/services/:id`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`.
+- Protected write routes require an owner session + `X-CSRF-Token` header: `PATCH /api/services/:id/price`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `PATCH /api/jobs/bulk-status`, `POST /api/ai/smoke-test`.
+- There is no owner-facing route to create, rename or deactivate a catalogue service. Canonical definitions are seeded by the platform and are not editable through the API.
 - Read routes and job creation remain public (single-garage, voice-first design).
 - CSRF token is issued on every response as the `X-CSRF-Token` header when sessions are active; clients must echo it on state-changing requests.
 - Session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production, 8-hour max age, rotated on login.
+
+## Garage scoping
+
+- The deployment is single-garage. The server resolves the garage from `GARAGE_ID` (default `default`); a `garageId` sent by the browser is ignored and stripped by validation.
+- Garage prices live in a separate `garagePrices` record keyed by `(garageId, serviceId)`. Central service definitions are never mutated by a price edit.
 
 ## Internal API
 
@@ -57,9 +63,8 @@ All responses JSON unless noted. Errors: `{ "error": { "code": string, "message"
 | Method | Path | Body / query | Notes |
 |---|---|---|---|
 | GET | `/api/health` | — | db status, mode, gnaniConfigured, evon status, mock flag |
-| GET | `/api/services` | `?includeInactive=1` | catalogue list |
-| POST | `/api/services` | `{name, description?, aliases?[], pricePaise, category?, isActive?}` | 201; requires owner session + CSRF when auth enabled |
-| PATCH | `/api/services/:id` | same, partial | price changes affect future previews only; requires owner session + CSRF when auth enabled |
+| GET | `/api/services` | `?includeInactive=1` | catalogue list with this garage's effective `pricePaise`, plus read-only `defaultPricePaise` and `priceOverridden` |
+| PATCH | `/api/services/:id/price` | `{pricePaise}` (integer, 0–10,000,000) | changes only this garage's price; central default unchanged; affects future previews only; requires owner session + CSRF when auth enabled |
 | POST | `/api/voice/transcribe` | multipart `audio` (≤5 MB, WAV) + `language?`, `format?` | mock/live by config; no persistence; stricter audio rate limit |
 | POST | `/api/voice/speak` | `{jobId?}` or `{text?}` | `audio/wav`; `X-AI-Mode` header; stricter audio rate limit |
 | POST | `/api/jobs/preview` | `{transcript, format?, customerName?, vehicleMake?, vehicleModel?, registrationNumber?, serviceItems?[{serviceId,quantity}], includedServiceIds?[], mechanicNotes?}` | provisional estimate, no writes |

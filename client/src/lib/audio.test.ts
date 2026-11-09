@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeWav } from './audio';
+import { encodeWav, getVoiceLevel } from './audio';
 
 const bytes = async (blob: Blob) => new Uint8Array(await blob.arrayBuffer());
 
@@ -16,5 +16,14 @@ describe('WAV encoding', () => {
     expect(view.getUint32(24, true)).toBe(16_000);
     expect(view.getUint16(22, true)).toBe(1);
     expect(view.getUint16(34, true)).toBe(16);
+  });
+});
+
+describe('voice level detection', () => {
+  it('returns zero for silence and scales louder input up to one', () => {
+    expect(getVoiceLevel(new Float32Array(4))).toBe(0);
+    expect(getVoiceLevel(new Float32Array())).toBe(0);
+    expect(getVoiceLevel(new Float32Array([0.05, 0.05, 0.05, 0.05]))).toBeCloseTo(0.6);
+    expect(getVoiceLevel(new Float32Array([1, 1, 1, 1]))).toBe(1);
   });
 });

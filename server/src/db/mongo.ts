@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { DataLayer, JobDoc, ServiceDoc, OwnerRecord } from './types';
+import { DataLayer, JobDoc, ServiceDoc, OwnerRecord, GaragePriceDoc } from './types';
 import { config } from '../config';
 
 const serviceSchema = new Schema(
@@ -59,10 +59,23 @@ const ownerSchema = new Schema(
   { timestamps: true },
 );
 
+// Garage-specific price override. Central Service documents are never mutated.
+const garagePriceSchema = new Schema(
+  {
+    garageId: { type: String, required: true, index: true },
+    serviceId: { type: String, required: true },
+    pricePaise: { type: Number, required: true, min: 0 },
+    updatedBy: { type: String, default: '' },
+  },
+  { timestamps: true },
+);
+garagePriceSchema.index({ garageId: 1, serviceId: 1 }, { unique: true });
+
 const ServiceModel = mongoose.model('Service', serviceSchema);
 const JobModel = mongoose.model('JobCard', jobSchema);
 const CounterModel = mongoose.model('Counter', counterSchema);
 const OwnerModel = mongoose.model('Owner', ownerSchema);
+const GaragePriceModel = mongoose.model('GaragePrice', garagePriceSchema);
 
 const toService = (d: any): ServiceDoc => ({
   id: String(d._id),
@@ -76,8 +89,17 @@ const toService = (d: any): ServiceDoc => ({
   updatedAt: (d.updatedAt ?? new Date()).toISOString(),
 });
 
-const toJob = (d: any): JobDoc => ({
+const toGaragePrice = (d: any): GaragePriceDoc => ({
   id: String(d._id),
+  garageId: d.garageId,
+  serviceId: d.serviceId,
+  pricePaise: d.pricePaise,
+  updatedBy: d.updatedBy ?? '',
+  createdAt: (d.createdAt ?? new Date()).toISOString(),
+  updatedAt: (d.updatedAt ?? new Date()).toISOString(),
+});
+
+const toJob = (d: any): JobDoc => ({  id: String(d._id),
   jobId: d.jobId,
   customerName: d.customerName ?? '',
   customerPhone: d.customerPhone ?? '',
@@ -181,6 +203,22 @@ export const mongoDb: DataLayer = {
       await OwnerModel.deleteMany({});
     },
   },
+  garagePrices: {
+    async list(garageId) {
+      return (await GaragePriceModel.find({ garageId }).lean()).map(toGaragePrice);
+    },
+    async upsert(input) {
+      const doc = await GaragePriceModel.findOneAndUpdate(
+        { garageId: input.garageId, serviceId: input.serviceId },
+        { $set: { pricePaise: input.pricePaise, updatedBy: input.updatedBy } },
+        { upsert: true, new: true },
+      ).lean();
+      return toGaragePrice(doc);
+    },
+    async reset() {
+      await GaragePriceModel.deleteMany({});
+    },
+  },
   async nextJobSeq() {
     const counter = await CounterModel.findOneAndUpdate(
       { _id: 'jobs' },
@@ -195,6 +233,7 @@ export const mongoDb: DataLayer = {
       JobModel.deleteMany({}),
       CounterModel.deleteMany({}),
       OwnerModel.deleteMany({}),
+      GaragePriceModel.deleteMany({}),
     ]);
   },
 };

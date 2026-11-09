@@ -1,37 +1,359 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
+/*
+ * GarageSathi — Premium Editorial Automotive SaaS.
+ * Single source of truth for the Ice Silver / Deep Aubergine / Marigold palette.
+ * Every surface, text, border, interactive state and transition originates from these exact hex values.
+ */
 
 @theme {
-  --color-ink-950: #060b14;
-  --color-ink-900: #0b1220;
-  --color-ink-850: #0e1728;
-  --color-ink-800: #111c2f;
-  --color-ink-700: #16243b;
-  --color-ink-600: #1f3350;
-  --color-ink-500: #2c4468;
+  /* ===== BRAND PALETTE (mandatory, do not change) ===== */
+  --color-ice-silver: #DDE3E8;   /* Main app canvas, page background, broad light surfaces */
+  --color-deep-aubergine: #3A0F34; /* Brand anchor, primary text, navigation, strong panels, headings */
+  --color-marigold: #EAAA00;     /* Primary action accent, key highlights, active markers, important emphasis */
+
+  --color-white: #FFFFFF;
+  --color-ink: #241D27;          /* Long-form readable text where needed */
+  --color-muted: #66717D;        /* Secondary text on light backgrounds */
+  --color-border: #C4CDD5;       /* Subtle separators and borders */
+
+  /* ===== SEMANTIC ROLES ===== */
+  --app-background: var(--color-ice-silver);
+  --surface: var(--color-white);
+  --surface-strong: var(--color-deep-aubergine);
+  --text-primary: var(--color-deep-aubergine);
+  --text-secondary: var(--color-muted);
+  --text-on-marigold: #3A0F34;   /* Dark text on Marigold for contrast */
+  --brand-primary: var(--color-deep-aubergine);
+  --brand-accent: var(--color-marigold);
+  --focus-ring: var(--color-deep-aubergine);
+  --border-color: var(--color-border);
+
+  /* ===== TYPOGRAPHY SCALE ===== */
   --font-sans: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
   --font-telugu: 'Noto Sans Telugu', 'Nirmala UI', 'Gautami', ui-sans-serif, sans-serif;
+
+  --font-display-size-xxl: 56px;
+  --font-display-size-xxl-mobile: 40px;
+  --font-display-size-xl: 40px;
+  --font-display-size-xl-mobile: 32px;
+  --font-display-size-l: 32px;
+  --font-display-size-l-mobile: 28px;
+  --font-display-size-m: 24px;
+  --font-display-size-s: 20px;
+  --font-display-size-xs: 16px;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
 }
+
+:root {
+  --brand-ice-silver: #DDE3E8;
+  --brand-deep-aubergine: #3A0F34;
+  --brand-marigold: #EAAA00;
+
+  --app-background: var(--brand-ice-silver);
+  --surface-solid: #FFFFFF;
+  --surface-glass: rgb(255 255 255 / 0.72);
+  --surface-glass-strong: rgb(255 255 255 / 0.88);
+  --surface-glass-subtle: rgb(255 255 255 / 0.56);
+  --surface-aubergine: var(--brand-deep-aubergine);
+  --surface-aubergine-glass: rgb(58 15 52 / 0.94);
+  --text-primary: var(--brand-deep-aubergine);
+  --text-secondary: #5F5260;
+  --text-muted: #66717D;
+  --text-on-aubergine: #FFFFFF;
+  --glass-border: rgb(58 15 52 / 0.13);
+  --glass-border-highlight: rgb(255 255 255 / 0.76);
+  --glass-shadow: 0 12px 32px rgb(58 15 52 / 0.08);
+  --glass-shadow-hover: 0 16px 38px rgb(58 15 52 / 0.12);
+  --accent-primary: var(--brand-marigold);
+  --accent-hover: #D39700;
+  --accent-ink: var(--brand-deep-aubergine);
+  --glass-blur-sm: 8px;
+  --glass-blur-md: 14px;
+  --glass-blur-lg: 20px;
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-slow: 320ms;
+}
+
+/* ========================================================================
+   BASE & PAGE LAYOUT
+   ======================================================================== */
 
 @layer base {
   html {
-    color-scheme: dark;
+    /* Light canvas — Ice Silver as the main background; do not force dark mode.
+       Switch to dark only for explicitly authenticated admin sessions. */
+    color-scheme: light;
     -webkit-tap-highlight-color: transparent;
   }
+
   body {
-    @apply bg-ink-900 font-sans text-slate-100 antialiased;
+    margin: 0;
+    font-family: var(--font-sans);
+    line-height: var(--line-height-normal);
+    background-color: var(--app-background);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  :where(a, button, [role='option'], [role='tab']):focus-visible {
-    outline: 2px solid rgb(45 212 191 / 0.7);
+
+  /* Ensure Telugu rendering awareness */
+  .font-telugu {
+    font-family: var(--font-telugu);
+  }
+
+  a {
+    color: var(--text-primary);
+    text-decoration: none;
+    &:hover {
+      color: var(--brand-accent);
+    }
+  }
+
+  /* Focus-visible — Deep Aubergine for maximum contrast on light surfaces */
+  :where(a, button, [role='option'], [role='tab'], input, select, textarea):focus-visible {
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
+
   ::selection {
-    background: rgb(45 212 191 / 0.25);
+    background: rgb(234 170 0 / 0.25);
   }
-  input[type='number']::-webkit-outer-spin-button,
-  input[type='number']::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+
+  /* Input element adjustments */
+  input, select, textarea {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    color: var(--text-primary);
+    &:focus {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
   }
+
+  textarea {
+    resize: vertical;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    color: var(--text-primary);
+    margin-top: 0;
+    line-height: var(--line-height-tight);
+  }
+
+  /* Remove default Marigold-on-white readability issues */
+  .marigold-on-white {
+    /* Marigold text on white needs a shadow or darker context — use sparingly */
+    color: var(--color-marigold);
+  }
+
+  /* Marigold text must NOT be used on Ice Silver backgrounds with insufficient contrast. */
+}
+
+@layer components {
+  .app-canvas {
+    background-color: var(--app-background);
+    background-image:
+      radial-gradient(ellipse at 8% 2%, rgb(255 255 255 / 0.5), transparent 34rem),
+      radial-gradient(ellipse at 94% 18%, rgb(58 15 52 / 0.035), transparent 38rem);
+  }
+
+  .glass-panel {
+    background: var(--surface-glass-strong);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .glass-panel-subtle {
+    background: var(--surface-glass);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 22px rgb(58 15 52 / 0.06);
+  }
+
+  .glass-card-interactive {
+    transition: box-shadow var(--motion-normal) ease, border-color var(--motion-normal) ease, transform var(--motion-normal) ease;
+  }
+
+  .glass-card-interactive:hover {
+    border-color: rgb(58 15 52 / 0.2);
+    box-shadow: var(--glass-shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  .glass-nav {
+    color: var(--text-on-aubergine);
+    background: var(--surface-aubergine-glass);
+    border-color: rgb(255 255 255 / 0.14);
+    box-shadow: 10px 0 30px rgb(58 15 52 / 0.12);
+  }
+
+  .glass-toolbar {
+    background: rgb(255 255 255 / 0.84);
+    border-color: var(--glass-border);
+    box-shadow: 0 6px 20px rgb(58 15 52 / 0.06);
+  }
+
+  .glass-popover {
+    background: rgb(255 255 255 / 0.97);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 18px 48px rgb(58 15 52 / 0.16);
+  }
+
+  .glass-dialog {
+    background: rgb(255 255 255 / 0.97);
+    border: 1px solid rgb(255 255 255 / 0.82);
+    box-shadow: 0 24px 64px rgb(58 15 52 / 0.2);
+  }
+
+  .glass-toast {
+    background: rgb(255 255 255 / 0.94);
+    border-color: var(--glass-border);
+    box-shadow: 0 12px 32px rgb(58 15 52 / 0.14);
+  }
+
+  .glass-skeleton {
+    background: linear-gradient(100deg, rgb(221 227 232 / 0.72) 25%, rgb(255 255 255 / 0.86) 42%, rgb(221 227 232 / 0.72) 62%);
+    background-size: 220% 100%;
+    animation: glass-shimmer 1.8s ease-in-out infinite;
+  }
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  @layer components {
+    .glass-panel,
+    .glass-panel-subtle,
+    .glass-card-interactive,
+    .glass-nav,
+    .glass-toolbar,
+    .glass-popover,
+    .glass-dialog,
+    .glass-toast {
+      -webkit-backdrop-filter: blur(var(--glass-blur-md));
+      backdrop-filter: blur(var(--glass-blur-md));
+    }
+
+    .glass-panel-subtle {
+      -webkit-backdrop-filter: blur(var(--glass-blur-sm));
+      backdrop-filter: blur(var(--glass-blur-sm));
+    }
+  }
+}
+
+@keyframes glass-shimmer {
+  to {
+    background-position-x: -220%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-skeleton {
+    animation: none;
+    background-position: 0 0;
+  }
+
+  .glass-card-interactive,
+  .glass-card-interactive:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ========================================================================
+   LAYOUT UTILITIES
+   ======================================================================== */
+
+@layer utilities {
+  /* Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) var(--color-ice-silver);
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-sans);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+
+  /* Primary command button — Marigold accent */
+  .btn-primary {
+    background-color: var(--color-marigold);
+    color: var(--color-deep-aubergine);
+    &:hover {
+      background-color: #F5A623; /* slightly darker marigold */
+    }
+    &:active {
+      background-color: #EAAA00;
+    }
+  }
+
+  /* Secondary button — Deep Aubergine */
+  .btn-secondary {
+    background-color: var(--color-deep-aubergine);
+    color: var(--color-white);
+    &:hover {
+      background-color: #2D1A40;
+    }
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-primary);
+    padding: 0.25rem 0.75rem;
+    &:hover {
+      background-color: var(--color-ice-silver);
+    }
+  }
+
+  /* Input styles already set in base */
+
+  /* Figure caption/styling */
+  .fig-caption {
+    font-size: var(--font-size-xs);
+    color: var(--color-muted);
+    margin-top: 0.5rem;
+  }
+
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -44,31 +366,303 @@
   }
 }
 
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: #2c4468 transparent;
+/* ========================================================================
+   COMPONENT OVERRIDES — REPLACE OLD INK/SLATE/TEAL TOKENS
+   ======================================================================== */
+
+/* ========================================================================
+   SIDEBAR / NAVIGATION — Deep Aubergine dominant, Marigold accent
+   ======================================================================== */
+
+.sidebar {
+  background-color: var(--color-deep-aubergine);
+  color: var(--color-white);
+  height: 100vh;
+  width: 260px;
+  /* Fixed positioning for now; adjust as needed for responsive layout */
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.sidebar-brand {
+  padding: 1rem 1.5rem;
+  color: var(--color-marigold);
+  font-family: var(--font-serif);
+  font-size: var(--font-display-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background-color: transparent;
+  margin-bottom: 2rem;
+}
+
+.sidebar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  width: 100%;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  color: var(--color-white);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  gap: 0.75rem;
+  border-radius: 0;
+  margin: 0;
+  transition: background-color 150ms ease, padding-left 150ms ease;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    padding-left: 2rem;
   }
-  .font-telugu {
-    font-family: var(--font-telugu);
+  &:focus-visible {
+    background-color: rgba(255, 255, 255, 0.12);
   }
-  .page-enter {
-    animation: page-enter 180ms ease-out both;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .page-enter {
-      animation: none;
-    }
+  &.active {
+    background-color: var(--color-marigold);
+    color: var(--color-deep-aubergine);
   }
 }
 
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+/* Top-level content area, when sidebar is collapsed/expanded */
+.main-content {
+  margin-left: 260px;
+  padding: 2rem 1.5rem;
+  background-color: var(--color-ice-silver);
+  min-height: 100vh;
+}
+
+/* When sidebar is collapsed, reduce the main content margin */
+.main-content.collapsed {
+  margin-left: 60px;
+}
+
+/* ========================================================================
+   CARD / SURFACE STYLES
+   ======================================================================== */
+
+.card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.card-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-muted);
+}
+
+/* ========================================================================
+   TABLE & DATA STYLING
+   ======================================================================== */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+}
+
+.table th {
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-ice-silver);
+  color: var(--text-primary);
+}
+
+.table tr:hover {
+  background-color: rgba(221, 227, 232, 0.5); /* Ice Silver hover */
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-white);
+}
+
+.status-received { background-color: var(--color-deep-aubergine); }
+.status-approved { background-color: var(--color-marigold); color: var(--color-deep-aubergine); }
+.status-in-progress { background-color: #6366F1; } /* fallback blue */
+.status-completed { background-color: var(--color-emerald-400); } /* fallback green */
+
+/* ========================================================================
+   BADGES — use brand colors, not the old teal/slate palette
+   ======================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.badge-aubergine {
+  background-color: rgba(58, 15, 52, 0.15);
+  color: var(--color-deep-aubergine);
+}
+
+.badge-marigold {
+  background-color: rgba(234, 170, 0, 0.15);
+  color: var(--color-marigold);
+}
+
+.badge-ice-silver {
+  background-color: var(--color-ice-silver);
+  color: var(--color-deep-aubergine);
+}
+
+/* ========================================================================
+   BUTTONS — replace old teal/ink button styles
+   ======================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.btn-brand {
+  background-color: var(--color-deep-aubergine);
+  color: var(--color-white);
+  &:hover {
+    background-color: #2D1A40;
   }
-  to {
-    opacity: 1;
-    transform: none;
+}
+
+.btn-accent {
+  background-color: var(--color-marigold);
+  color: var(--color-deep-aubergine);
+  &:hover {
+    background-color: #F5A623;
+  }
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-primary);
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--color-border);
+  &:hover {
+    background-color: var(--color-ice-silver);
+  }
+}
+
+/* ========================================================================
+   ALERT / NOTICE STYLING
+   ======================================================================== */
+
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.alert-error {
+  background-color: #FEE2E2; /* rose-100 equivalent */
+  border: 1px solid var(--color-border);
+  color: var(--color-rose-400);
+}
+
+.alert-success {
+  background-color: var(--color-emerald-400); /* fallback */
+  color: #FFFFFF;
+  border: 1px solid var(--color-emerald-400);
+}
+
+/* ========================================================================
+   RESPONSIVE: SIDEBAR COLLAPSE / MOBILE
+   ======================================================================== */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .sidebar-nav a {
+    width: auto;
+    padding: 0.5rem 1rem;
+    justify-content: center;
+  }
+
+  .sidebar-nav a.active {
+    background-color: var(--color-marigold);
+    color: var(--color-deep-aubergine);
+  }
+
+  .sidebar-brand {
+    justify-content: center;
+    flex: 1;
+  }
+}
+
+/* Mobile: full-width content, no sidebar */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 1rem;
   }
 }

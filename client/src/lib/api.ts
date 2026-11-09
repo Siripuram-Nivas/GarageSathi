@@ -79,10 +79,10 @@ export const api = {
       request<{ owner: { id: string; username: string; createdAt: string } }>('/api/auth/setup', json('POST', body)),
   },
 
-  services: () => request<{ services: Service[] }>('/api/services?includeInactive=1'),
-  createService: (body: Partial<Service>) => request<{ service: Service }>('/api/services', json('POST', body)),
-  updateService: (id: string, body: Partial<Service>) =>
-    request<{ service: Service }>(`/api/services/${id}`, json('PATCH', body)),
+  services: (includeInactive = false) =>
+    request<{ services: Service[] }>(`/api/services${includeInactive ? '?includeInactive=1' : ''}`),
+  updateServicePrice: (id: string, pricePaise: number) =>
+    request<{ service: Service }>(`/api/services/${id}/price`, json('PATCH', { pricePaise })),
 
   transcribe: (audio: Blob, format: 'transcribe' | 'codemix' = 'transcribe') => {
     const form = new FormData();

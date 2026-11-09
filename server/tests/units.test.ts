@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SERVICE_SEEDS, matchServices, detectVehicle, findTerms } from '../src/catalogue';
-import { ServiceDoc } from '../src/db/types';
+import { GaragePriceDoc, ServiceDoc } from '../src/db/types';
 import { buildEstimate } from '../src/pricing';
+import { applyGaragePrices } from '../src/garagePricing';
+import { requireOwner } from '../src/middleware';
 import { extract } from '../src/extraction';
 import { inspectWav, mockToneWav } from '../src/wav';
 import { numberToTelugu, rupeesToTeluguWords, buildConfirmationText } from '../src/telugu';
@@ -77,6 +79,37 @@ describe('audio validation', () => {
 
   it('rejects a renamed non-WAV buffer', () => {
     expect(() => inspectWav(Buffer.from('this is not audio'))).toThrowError(/WAV/);
+  });
+});
+
+describe('garage price overrides', () => {
+  const override = (garageId: string, serviceId: string, pricePaise: number): GaragePriceDoc => ({
+    id: `${garageId}-${serviceId}`,
+    garageId,
+    serviceId,
+    pricePaise,
+    updatedBy: 'owner',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  });
+
+  it('applies only the matching garage’s override and never mutates the default', () => {
+    const before = catalogue[0].pricePaise;
+    const garageA = applyGaragePrices(catalogue, [override('garage-a', catalogue[0].id, 12_345)], 'garage-a');
+    const garageB = applyGaragePrices(catalogue, [override('garage-a', catalogue[0].id, 12_345)], 'garage-b');
+
+    expect(garageA[0]).toMatchObject({ pricePaise: 12_345, defaultPricePaise: before, priceOverridden: true });
+    expect(garageB[0]).toMatchObject({ pricePaise: before, priceOverridden: false });
+    expect(catalogue[0].pricePaise).toBe(before);
+  });
+
+  it('rejects price edits from a non-owner session', () => {
+    const next = vi.fn();
+    expect(() => requireOwner({ session: {} } as never, {} as never, next)).toThrowError(/Sign in/i);
+    expect(() =>
+      requireOwner({ session: { user: { id: '1', username: 'mechanic', role: 'mechanic' } } } as never, {} as never, next),
+    ).toThrowError(/Owner role required/i);
+    expect(next).not.toHaveBeenCalled();
   });
 });
 

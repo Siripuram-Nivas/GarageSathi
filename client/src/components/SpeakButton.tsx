@@ -30,11 +30,11 @@ export function SpeakButton({ jobId, label = 'Play Telugu confirmation' }: { job
         {loading ? <Volume2 size={16} /> : <Play size={16} />} {label}
       </Button>
       {mock === true && (
-        <p className="text-xs text-amber-300">
-          Mock audio: a placeholder tone, not Gnani speech. <Badge tone="amber">MOCK</Badge>
+        <p className="text-xs text-marigold">
+          Mock audio: a placeholder tone, not Gnani speech. <Badge tone="marigold">MOCK</Badge>
         </p>
       )}
-      {mock === false && <p className="text-xs text-teal-300">Real Gnani Timbre audio (Telugu, timbre-v2.5).</p>}
+      {mock === false && <p className="text-xs text-aubergine">Real Gnani Timbre audio (Telugu, timbre-v2.5).</p>}
     </div>
   );
 }

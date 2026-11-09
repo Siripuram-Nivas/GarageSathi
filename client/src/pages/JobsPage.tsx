@@ -128,7 +128,7 @@ export default function JobsPage() {
   if (error) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-rose-300">{error}</p>
+        <p className="text-rose-600">{error}</p>
         <Button className="mt-4" onClick={() => location.reload()}>
           Retry
         </Button>
@@ -146,7 +146,7 @@ export default function JobsPage() {
             <Skeleton className="h-10 w-44" />
           </div>
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="flex items-center gap-4 border-t border-ink-700 py-4">
+            <div key={index} className="flex items-center gap-4 border-t border-border py-4">
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-4 flex-1" />
               <Skeleton className="h-4 w-28" />
@@ -175,9 +175,9 @@ export default function JobsPage() {
         }
       />
 
-      <Card className="mb-4 flex flex-wrap items-center gap-3 p-3">
+      <Card className="glass-toolbar mb-4 flex flex-wrap items-center gap-3 rounded-2xl p-3">
         <div className="relative min-w-56 flex-1">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search jobs…" className="pl-9" aria-label="Search job cards" />
         </div>
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-auto min-w-44" aria-label="Filter by status">
@@ -188,14 +188,14 @@ export default function JobsPage() {
             </option>
           ))}
         </Select>
-        <span className="text-xs text-slate-500" aria-live="polite">
+        <span className="text-xs text-muted" aria-live="polite">
           {filtered.length} shown
         </span>
       </Card>
 
       {selected.size > 0 && (
-        <Card className="mb-4 flex flex-wrap items-center gap-3 border-teal-400/30 bg-teal-400/5 p-3">
-          <span className="text-sm text-teal-100">{selected.size} selected</span>
+        <Card className="mb-4 flex flex-wrap items-center gap-3 border-marigold/30 bg-marigold/5 p-3">
+          <span className="text-sm text-marigold">{selected.size} selected</span>
           <Select
             value={bulkStatus}
             onChange={(e) => setBulkStatus(e.target.value as JobStatus | '')}
@@ -216,7 +216,7 @@ export default function JobsPage() {
             Clear
           </Button>
           {bulkStatus && eligible.length < selectedJobs.length && (
-            <span className="text-xs text-amber-300">{selectedJobs.length - eligible.length} cannot move directly to this status.</span>
+            <span className="text-xs text-marigold">{selectedJobs.length - eligible.length} cannot move directly to this status.</span>
           )}
         </Card>
       )}
@@ -227,63 +227,63 @@ export default function JobsPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-sm">
                 <thead>
-                  <tr className="border-b border-ink-700 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                     <th className="w-10 px-4 py-3">
                       <input
                         type="checkbox"
                         checked={allOnPageSelected}
                         onChange={togglePage}
-                        className="h-4 w-4 accent-teal-400"
+                        className="h-4 w-4 accent-marigold"
                         aria-label="Select all job cards on this page"
                       />
                     </th>
                     <SortableHead label="Job" sortKey="jobId" sort={sort} onSort={toggleSort} />
                     <SortableHead label="Customer" sortKey="customer" sort={sort} onSort={toggleSort} />
-                    <th className="px-4 py-3 font-medium">Vehicle</th>
-                    <th className="px-4 py-3 font-medium">Complaint</th>
+                    <th className="px-4 py-3 font-medium text-deep-aubergine">Vehicle</th>
+                    <th className="px-4 py-3 font-medium text-deep-aubergine">Complaint</th>
                     <SortableHead label="Estimate" sortKey="estimate" sort={sort} onSort={toggleSort} />
                     <SortableHead label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
                     <SortableHead label="Created" sortKey="created" sort={sort} onSort={toggleSort} />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-ink-700">
+                <tbody className="divide-y divide-border">
                   {pageData.items.map((job) => (
-                    <tr key={job.id} className={cn('align-top transition hover:bg-ink-800/60', selected.has(job.jobId) && 'bg-teal-400/5')}>
+                    <tr key={job.id} className={cn('align-top transition hover:bg-ice-silver/50', selected.has(job.jobId) && 'bg-marigold/5')}>
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
                           checked={selected.has(job.jobId)}
                           onChange={() => toggleRow(job.jobId)}
-                          className="h-4 w-4 accent-teal-400"
+                          className="h-4 w-4 accent-marigold"
                           aria-label={`Select job ${job.jobId}`}
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <Link to={`/jobs/${job.jobId}`} className="font-medium text-teal-300 hover:text-teal-200">
+                        <Link to={`/jobs/${job.jobId}`} className="font-medium text-marigold hover:text-amber-600">
                           {job.jobId}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-slate-200">{job.customerName || '—'}</td>
-                      <td className="px-4 py-3 text-slate-400">
+                      <td className="px-4 py-3 text-deep-aubergine">{job.customerName || '—'}</td>
+                      <td className="px-4 py-3 text-muted">
                         {[job.vehicleMake, job.vehicleModel].filter(Boolean).join(' ') || '—'}
-                        {job.registrationNumber && <span className="block text-xs text-slate-500">{job.registrationNumber}</span>}
+                        {job.registrationNumber && <span className="block text-xs text-muted">{job.registrationNumber}</span>}
                       </td>
-                      <td className="max-w-72 px-4 py-3 text-slate-400">
+                      <td className="max-w-72 px-4 py-3 text-muted">
                         <span className="line-clamp-2">{job.customerComplaint || job.originalTranscript}</span>
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-slate-200">{formatINR(job.estimateTotalPaise)}</td>
+                      <td className="px-4 py-3 tabular-nums text-deep-aubergine">{formatINR(job.estimateTotalPaise)}</td>
                       <td className="px-4 py-3">
                         <Badge tone={statusTone(job.currentStatus)}>{statusLabel(job.currentStatus)}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{formatDate(job.createdAt)}</td>
+                      <td className="px-4 py-3 text-xs text-muted">{formatDate(job.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-700 px-4 py-3">
-              <span className="text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <span className="text-xs text-muted">
                 Showing {(pageData.page - 1) * PAGE_SIZE + 1}–{Math.min(pageData.page * PAGE_SIZE, filtered.length)} of {filtered.length}
               </span>
               <div className="flex items-center gap-2">
@@ -295,7 +295,7 @@ export default function JobsPage() {
                 >
                   <ChevronLeft size={14} /> Prev
                 </Button>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted">
                   Page {pageData.page} of {pageData.pages}
                 </span>
                 <Button
@@ -335,15 +335,15 @@ export default function JobsPage() {
         onClose={() => setConfirmingBulk(false)}
       >
         <p>
-          Move <strong className="text-white">{eligible.length}</strong> of {selectedJobs.length} selected job card(s) to{' '}
-          <strong className="text-white">{bulkStatus ? statusLabel(bulkStatus) : '—'}</strong>?
+          Move <strong className="text-deep-aubergine">{eligible.length}</strong> of {selectedJobs.length} selected job card(s) to{' '}
+          <strong className="text-deep-aubergine">{bulkStatus ? statusLabel(bulkStatus) : '—'}</strong>?
         </p>
         {eligible.length < selectedJobs.length && (
-          <p className="mt-2 text-xs text-amber-300">
+          <p className="mt-2 text-xs text-marigold">
             {selectedJobs.length - eligible.length} job card(s) cannot move directly to that status and will be skipped.
           </p>
         )}
-        <p className="mt-2 text-xs text-slate-500">Each change is added to the job's status history.</p>
+        <p className="mt-2 text-xs text-muted">Each change is added to the job's status history.</p>
       </ConfirmDialog>
     </div>
   );
@@ -363,13 +363,13 @@ function SortableHead({
   const active = sort.key === sortKey;
   return (
     <th
-      className="px-4 py-3 font-medium"
+      className="px-4 py-3 font-medium text-deep-aubergine"
       aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={cn('inline-flex items-center gap-1 hover:text-slate-200', active && 'text-teal-300')}
+        className={cn('inline-flex items-center gap-1 hover:text-deep-aubergine', active && 'text-marigold')}
       >
         {label}
         {active ? sort.direction === 'asc' ? <ChevronUp size={13} /> : <ChevronDown size={13} /> : <ArrowUpDown size={13} className="opacity-50" />}
