@@ -1,12 +1,13 @@
 import fs from 'fs';
 import path from 'path';
-import { JobDoc, ServiceDoc, DataLayer } from './types';
+import { JobDoc, ServiceDoc, DataLayer, OwnerRecord } from './types';
 import { config } from '../config';
 
 interface FileDb {
   seq: number;
   services: ServiceDoc[];
   jobs: JobDoc[];
+  owner: OwnerRecord | null;
 }
 
 const dbPath = path.join(config.dataDir, 'db.json');
@@ -19,9 +20,9 @@ function load(): FileDb {
   try {
     state = JSON.parse(fs.readFileSync(dbPath, 'utf8')) as FileDb;
   } catch {
-    state = { seq: 1000, services: [], jobs: [] };
+    state = { seq: 1000, services: [], jobs: [], owner: null };
   }
-  return state;
+  return state!;
 }
 
 // Serialize writes: the file store is a single-process development/demo backend.
@@ -95,6 +96,26 @@ export const fileDb: DataLayer = {
       await persist();
     },
   },
+  auth: {
+    async get() {
+      return load().owner ?? null;
+    },
+    async create(input) {
+      const owner: OwnerRecord = {
+        id: crypto.randomUUID(),
+        username: input.username,
+        passwordHash: input.passwordHash,
+        createdAt: now(),
+      };
+      load().owner = owner;
+      await persist();
+      return owner;
+    },
+    async reset() {
+      load().owner = null;
+      await persist();
+    },
+  },
   async nextJobSeq() {
     const db = load();
     db.seq += 1;
@@ -102,7 +123,7 @@ export const fileDb: DataLayer = {
     return db.seq;
   },
   async reset() {
-    state = { seq: 1000, services: [], jobs: [] };
+    state = { seq: 1000, services: [], jobs: [], owner: null };
     await persist();
   },
 };

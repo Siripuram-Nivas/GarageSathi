@@ -17,8 +17,9 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 - [x] COMPLETED — Prisma provider (multipart, language list, format, keyterms, topic, timeout).
 - [x] COMPLETED — Timbre provider (JSON, binary WAV, voice allow-list, dedupe).
 - [x] VERIFIED — Mock providers + credit guards (tests).
-- [ ] BLOCKED — Live Prisma call: needs `GNANI_API_KEY_ID` in root `.env`.
-- [ ] BLOCKED — Live Timbre call: needs same key + explicit live test.
+- [x] VERIFIED — Live Prisma call: one deliberate smoke test, HTTP 200, correct transcript, `en-IN` detected.
+- [x] VERIFIED — Live Timbre call: one deliberate smoke test, 48 kHz mono WAV returned (Varuni).
+- [ ] NOT_STARTED — Telugu clip accuracy + audio listening check + full live UI flow.
 
 ## Business operations
 - [x] VERIFIED — catalogue + Telugu-English alias matching, unresolved flags.
@@ -38,6 +39,18 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 - [x] VERIFIED — backend unit + API tests, frontend logic tests, typecheck, production build.
 - [ ] NOT_STARTED — automated Playwright E2E (manual browser validation done).
 
+## Security (audit + hardening)
+- [x] VERIFIED — Argon2id password hashing + one-time owner bootstrap (`auth.ts`, `authRoutes.ts`).
+- [x] VERIFIED — Session-based auth (`express-session`), login/logout/me, opt-in via `AUTH_ENABLED`.
+- [x] VERIFIED — CSRF double-submit protection (`X-CSRF-Token`) on state-changing routes.
+- [x] VERIFIED — Auth-gated write routes (services, demo reset, status, smoke test).
+- [x] VERIFIED — Helmet security headers + CSP; strict CORS allowlist.
+- [x] VERIFIED — Removed `audioBase64` from smoke-test response; stricter audio rate limit.
+- [x] VERIFIED — 11 security unit tests + 8 auth integration tests pass; typecheck + build pass.
+- [ ] NOT_STARTED — Telugu clip accuracy + audio listening check + full live UI flow (live Gnani, manual).
+- [ ] NOT_STARTED — Enable GitHub secret scanning / push protection (if repo hosted).
+- [ ] NOT_STARTED — Production: set `AUTH_ENABLED=true`, run bootstrap, `DEMO_MODE=false`, rotate Gnani key.
+
 ## Deployment
 - [ ] NOT_STARTED — Vercel + Node host + Atlas. Developer approval required; no paid services.
 
@@ -48,4 +61,4 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 - [ ] NOT_STARTED — public deployment URL.
 
 ## Handoff
-- [x] VERIFIED — `TEST_LOG.md` and `HANDOFF.md` reflect real results and next actions.
+- [x] VERIFIED — `TEST_LOG.md` and `HANDOFF.md` reflect real results and next actions, including the live smoke test and security hardening.

@@ -1,6 +1,6 @@
 # API_CONTRACTS
 
-Verified against official docs on **2026-11-08**. No live call has been made yet.
+Verified against official docs on **2026-11-08**. One deliberate live smoke test was executed on 2026-11-08 (one Prisma request + one Timbre request) and passed; see `TEST_LOG.md`. Telugu-language accuracy has not been measured yet.
 
 ## Gnani authentication
 
@@ -18,7 +18,7 @@ Verified against official docs on **2026-11-08**. No live call has been made yet
 - Max 30 s per clip. Supported formats per current docs; GarageSathi always sends 16-bit PCM WAV.
 - Response fields consumed: `transcript` (string), `detected_language_code`, `request_id`, `status`. Exact response shape is tolerated defensively (`transcript|text|data.transcript`).
 - Errors: non-2xx → provider error with status + short body, no retry.
-- **Integration status: implemented, NOT verified live.**
+- **Integration status: verified live (single English-input smoke test). Telugu accuracy unmeasured.**
 
 ## Timbre v2.5 — text to speech
 
@@ -27,13 +27,28 @@ Verified against official docs on **2026-11-08**. No live call has been made yet
 - Body: `text`, `model=timbre-v2.5`, `voice=Varuni`, `language=te-IN`, `speed=1.0`, `audio_config={sample_rate:48000,num_channels:1,sample_width:2,encoding:"linear_pcm",container:"wav"}`.
 - Response: raw `audio/wav` binary (do **not** parse as JSON).
 - Voices validated against the documented v2.5 Telugu list: Varuni, Suhana, Lehara, Lavanya, Yukti.
-- **Integration status: implemented, NOT verified live.**
+- **Integration status: verified live (one request, Varuni, 48 kHz WAV returned).**
 
 ## Evon v3.3 (optional)
 
 - Model card: https://huggingface.co/gnani/gnani-evon-v3.3-30B-A3B
 - No hosted internship API. Adapter uses `POST {EVON_BASE_URL}/chat/completions` with bearer `EVON_API_KEY` only when `EVON_ENABLED=true`.
 - Status: **NOT CONFIGURED** by default; its output can never set prices or approve a job.
+
+## Authentication (opt-in)
+
+Authentication is disabled by default (`AUTH_ENABLED=false`) and preserves existing frontend behavior. Enable in production with `AUTH_ENABLED=true` + `AUTH_SESSION_SECRET`.
+
+- `POST /api/auth/setup` — one-time owner bootstrap. Requires `GARAGE_SETUP_TOKEN` in body + valid token; disabled after first use (409 on repeat). Rate-limited 5/min.
+- `POST /api/auth/login` — creates a server session (`gs_session` cookie). Generic failure message (no account enumeration). Rate-limited 10/min.
+- `POST /api/auth/logout` — destroys the session. Rate-limited 20/min.
+- `GET /api/auth/me` — returns the current session user or 401.
+
+**Access control (when `AUTH_ENABLED=true`):**
+- Protected write routes require an owner session + `X-CSRF-Token` header: `POST /api/services`, `PATCH /api/services/:id`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `POST /api/ai/smoke-test`.
+- Read routes and job creation remain public (single-garage, voice-first design).
+- CSRF token is issued on every response as the `X-CSRF-Token` header when sessions are active; clients must echo it on state-changing requests.
+- Session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production, 8-hour max age, rotated on login.
 
 ## Internal API
 
@@ -43,18 +58,22 @@ All responses JSON unless noted. Errors: `{ "error": { "code": string, "message"
 |---|---|---|---|
 | GET | `/api/health` | — | db status, mode, gnaniConfigured, evon status, mock flag |
 | GET | `/api/services` | `?includeInactive=1` | catalogue list |
-| POST | `/api/services` | `{name, description?, aliases?[], pricePaise, category?, isActive?}` | 201 |
-| PATCH | `/api/services/:id` | same, partial | price changes affect future previews only |
-| POST | `/api/voice/transcribe` | multipart `audio` (≤5 MB, WAV) + `language?`, `format?` | mock/live by config; no persistence |
-| POST | `/api/voice/speak` | `{jobId?}` or `{text?}` | `audio/wav`; `X-AI-Mode` header |
+| POST | `/api/services` | `{name, description?, aliases?[], pricePaise, category?, isActive?}` | 201; requires owner session + CSRF when auth enabled |
+| PATCH | `/api/services/:id` | same, partial | price changes affect future previews only; requires owner session + CSRF when auth enabled |
+| POST | `/api/voice/transcribe` | multipart `audio` (≤5 MB, WAV) + `language?`, `format?` | mock/live by config; no persistence; stricter audio rate limit |
+| POST | `/api/voice/speak` | `{jobId?}` or `{text?}` | `audio/wav`; `X-AI-Mode` header; stricter audio rate limit |
 | POST | `/api/jobs/preview` | `{transcript, format?, customerName?, vehicleMake?, vehicleModel?, registrationNumber?, serviceItems?[{serviceId,quantity}], includedServiceIds?[], mechanicNotes?}` | provisional estimate, no writes |
 | POST | `/api/jobs` | preview payload + `{customerName, mechanicApproved:true, customerPhone?, registrationNumber?, mechanicNotes?}` | 201; jobId `GS-1001…` |
 | GET | `/api/jobs` | `?status=&q=` | list, newest first |
 | GET | `/api/jobs/:id` | — | by `jobId` or id |
-| PATCH | `/api/jobs/:id/status` | `{status, note?}` | lifecycle validated |
+| PATCH | `/api/jobs/:id/status` | `{status, note?}` | lifecycle validated; requires owner session + CSRF when auth enabled |
 | GET | `/api/dashboard` | — | counts, revenue, recent, breakdowns |
-| POST | `/api/demo/reset` | `{confirm:true}` | requires `DEMO_MODE=true` |
+| POST | `/api/demo/reset` | `{confirm:true}` | requires `DEMO_MODE=true`; requires owner session + CSRF when auth enabled |
 | GET | `/api/ai/status` | — | provider readiness, no billable calls |
-| POST | `/api/ai/smoke-test` | multipart `audio` + `text?` | requires live + `ALLOW_GNANI_LIVE_TESTS=true` |
+| POST | `/api/ai/smoke-test` | multipart `audio` + `text?` | requires live + `ALLOW_GNANI_LIVE_TESTS=true`; requires owner session + CSRF when auth enabled |
+| POST | `/api/auth/setup` | `{token, username, password}` | one-time bootstrap; requires `GARAGE_SETUP_TOKEN` |
+| POST | `/api/auth/login` | `{username, password}` | issues session cookie; generic failure |
+| POST | `/api/auth/logout` | — | destroys session |
+| GET | `/api/auth/me` | — | returns current user or 401 |
 
 Lifecycle: `RECEIVED → INSPECTION → AWAITING_APPROVAL → APPROVED → IN_PROGRESS → READY_FOR_DELIVERY → COMPLETED`; `CANCELLED` from any non-terminal state.

@@ -4,11 +4,11 @@
 
 | Capability | Model | Status in this build |
 |---|---|---|
-| Speech to text | **Gnani Prisma v3.0** (`prisma-v3.0`) | Implemented, **NOT verified live** |
-| Text to speech | **Gnani Timbre v2.5** (`timbre-v2.5`), voice **Varuni** | Implemented, **NOT verified live** |
+| Speech to text | **Gnani Prisma v3.0** (`prisma-v3.0`) | **Live verified** — one smoke test, correct English transcript; Telugu accuracy unmeasured |
+| Text to speech | **Gnani Timbre v2.5** (`timbre-v2.5`), voice **Varuni** | **Live verified** — one smoke test returned a 48 kHz mono WAV |
 | Optional reasoning | Gnani Evon v3.3 30B-A3B | **Not configured**, not used by the product flow |
 
-Verification was impossible in this session because no Gnani secret was available. Every live path is written against the official documentation and is gated so it cannot run by accident. No live request has been made from this repository.
+A single deliberate live smoke test was executed on 2026-11-08: one Prisma request and one Timbre request. Both returned HTTP 200. The STT input was English speech, so this proves the integration and response handling, not Telugu accuracy. Details and the saved audio are in `../BRAIN/TEST_LOG.md` and `live-smoke-tts.wav`.
 
 ## 1. Gnani Prisma v3.0 — speech to text
 
@@ -79,15 +79,28 @@ Model card: `gnani/gnani-evon-v3.3-30B-A3B`. There is no hosted internship API f
 - Single attempt per user action; no retry loop.
 - The UI always shows the active mode; mock transcripts and mock audio are labelled.
 
-## 5. What would prove live support
+## 5. Live verification record
 
-1. `GNANI_API_KEY_ID` present in the root `.env`.
-2. `AI_PROVIDER_MODE=live`, server restarted, status page shows Live.
-3. `ALLOW_GNANI_LIVE_TESTS=true`, one smoke test: real Telugu transcript + real WAV returned.
-4. A real job saved from that transcript, with Timbre audio played back.
-5. `BRAIN/TEST_LOG.md` updated with date, model, latency, and result.
+Executed 2026-11-08 with the real key, one call per model:
 
-Until step 5 is done, the correct claim is: **integration implemented against the documented API; live verification pending.**
+| Check | Result |
+|---|---|
+| Prisma endpoint + auth | HTTP 200 |
+| Transcript | `Ravi Kumar, Honda Activa brake sound is coming. Please change the engine oil.` |
+| Detected language | `en-IN` |
+| Provider request ID | `01a1bc47-965a-7105-9d4a-1b9db5043075` |
+| Timbre endpoint + auth | HTTP 200, `audio/wav` |
+| Audio | 276,524 bytes, 48 kHz mono 16-bit, ≈2.88 s (`live-smoke-tts.wav`) |
+
+Still to verify before claiming a complete live product:
+
+1. A real **Telugu** clip through the live flow, with accuracy notes.
+2. A listening check of the Varuni confirmation.
+3. The full live UI flow: record → transcript → approve → job → speak.
+
+`ALLOW_GNANI_LIVE_TESTS` is back to `false`; the smoke test cannot be repeated accidentally. Rotate the key after the demo because it was shared in a chat session.
+
+Until steps 1–3 are recorded, the correct claim is: **live API integration verified; Telugu quality pending.**
 
 ## 6. References
 

@@ -5,12 +5,12 @@ import { JOB_STATUSES, JobDoc, JobStatus, ServiceDoc } from './db/types';
 import { AppError } from './errors';
 import { extract } from './extraction';
 import { buildEstimate } from './pricing';
-import { aiMode, config } from './config';
+import { aiMode, config, isAuthEnabled } from './config';
 import { aiStatus, speak, transcribe } from './providers/ai';
 import { evonExtract } from './providers/evon';
 import { inspectWav } from './wav';
 import { buildConfirmationText } from './telugu';
-import { rateLimit, upload } from './middleware';
+import { rateLimit, upload, audioRateLimit, csrfProtection, requireAuth, requireOwner } from './middleware';
 
 export const router = Router();
 
@@ -19,6 +19,11 @@ const parse = <T extends z.ZodTypeAny>(schema: T, data: unknown): z.infer<T> => 
   if (!result.success) throw result.error;
   return result.data;
 };
+
+// When AUTH_ENABLED, every write route below requires an owner session + CSRF token.
+// When disabled (default), these are no-ops so the existing frontend keeps working.
+const ownerWrite = () => (isAuthEnabled() ? [requireAuth, requireOwner, csrfProtection] : []);
+
 
 const quantity = z.number().int().min(1).max(20);
 
@@ -111,7 +116,7 @@ router.get('/services', async (req, res) => {
   res.json({ services: includeInactive ? services : services.filter((s) => s.isActive) });
 });
 
-router.post('/services', rateLimit(20), async (req, res) => {
+router.post('/services', rateLimit(20), ...ownerWrite(), async (req, res) => {
   const input = parse(serviceSchema, req.body);
   const db = await getDb();
   const existing = (await db.services.list()).find((s) => s.name.toLowerCase() === input.name.toLowerCase());
@@ -120,7 +125,7 @@ router.post('/services', rateLimit(20), async (req, res) => {
   res.status(201).json({ service });
 });
 
-router.patch('/services/:id', rateLimit(60), async (req, res) => {
+router.patch('/services/:id', rateLimit(60), ...ownerWrite(), async (req, res) => {
   const input = parse(serviceSchema.partial(), req.body);
   const db = await getDb();
   const service = await db.services.update(String(req.params.id), input);
@@ -128,7 +133,7 @@ router.patch('/services/:id', rateLimit(60), async (req, res) => {
   res.json({ service });
 });
 
-router.post('/voice/transcribe', rateLimit(10), upload.single('audio'), async (req, res) => {
+router.post('/voice/transcribe', audioRateLimit, upload.single('audio'), async (req, res) => {
   if (!req.file) throw new AppError(400, 'AUDIO_REQUIRED', 'Attach a WAV recording in the "audio" field.');
   const info = inspectWav(req.file.buffer);
   const format = req.body?.format ? parse(z.enum(['transcribe', 'codemix']), req.body.format) : undefined;
@@ -136,7 +141,7 @@ router.post('/voice/transcribe', rateLimit(10), upload.single('audio'), async (r
   res.json({ ...result, durationSec: info.durationSec, mode: aiMode() });
 });
 
-router.post('/voice/speak', rateLimit(10), async (req, res) => {
+router.post('/voice/speak', audioRateLimit, async (req, res) => {
   const input = parse(z.object({ jobId: z.string().optional(), text: z.string().trim().min(1).max(600).optional(), voice: z.string().optional() }), req.body);
   let text = input.text ?? '';
   if (input.jobId) {
@@ -223,7 +228,7 @@ router.get('/jobs/:id', async (req, res) => {
   res.json({ job });
 });
 
-router.patch('/jobs/:id/status', rateLimit(60), async (req, res) => {
+router.patch('/jobs/:id/status', rateLimit(60), ...ownerWrite(), async (req, res) => {
   const input = parse(statusSchema, req.body);
   const db = await getDb();
   const job = await db.jobs.find(String(req.params.id));
@@ -281,7 +286,7 @@ router.get('/ai/status', async (_req, res) => {
   res.json({ ...aiStatus(), db: db.mode });
 });
 
-router.post('/ai/smoke-test', rateLimit(3), upload.single('audio'), async (req, res) => {
+router.post('/ai/smoke-test', rateLimit(3), ...ownerWrite(), upload.single('audio'), async (req, res) => {
   if (!config.allowLiveTests) {
     throw new AppError(403, 'LIVE_TESTS_DISABLED', 'Set ALLOW_GNANI_LIVE_TESTS=true in .env to permit a paid smoke test.');
   }
@@ -297,13 +302,13 @@ router.post('/ai/smoke-test', rateLimit(3), upload.single('audio'), async (req, 
   const tts = await speak('గ్యారేజ్ సాథి లైవ్ పరీక్ష విజయవంతమైంది.');
   res.json({
     stt: { transcript: stt.transcript, detectedLanguage: stt.detectedLanguage, requestId: stt.requestId },
-    tts: { bytes: tts.audio.length, contentType: tts.contentType, audioBase64: tts.audio.toString('base64') },
+    tts: { bytes: tts.audio.length, contentType: tts.contentType },
     mode: aiMode(),
     note: 'One STT and one TTS request were sent. Do not repeat unnecessarily.',
   });
 });
 
-router.post('/demo/reset', rateLimit(3), async (req, res) => {
+router.post('/demo/reset', rateLimit(3), ...ownerWrite(), async (req, res) => {
   if (!config.demoMode) throw new AppError(403, 'DEMO_DISABLED', 'Demo reset is disabled.');
   parse(z.object({ confirm: z.literal(true) }), req.body);
   await resetDb();

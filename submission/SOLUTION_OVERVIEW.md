@@ -99,7 +99,7 @@ The model is used where it is strong and excluded where correctness is non-negot
 
 ## Known limitations
 
-- Live Prisma and Timbre are implemented against the docs but **untested** — no secret in this build.
+- Prisma and Timbre are live-verified at the API level (one smoke test each). Telugu accuracy, a listening check, and the full live UI flow are still unverified.
 - Mock TTS is a tone, not speech; it is labelled as such.
 - The JSON store is single-process and not suitable for shared hosting.
 - Photo attachments, WhatsApp delivery, payments, and multi-user roles are out of scope.

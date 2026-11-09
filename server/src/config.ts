@@ -7,6 +7,8 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 export type AiMode = 'mock' | 'live';
 
+export type AuthMode = 'off' | 'on';
+
 export const config = {
   port: Number(process.env.PORT || 4000),
   isProd: process.env.NODE_ENV === 'production',
@@ -17,6 +19,16 @@ export const config = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  // Authentication is opt-in so the existing frontend keeps working out of the box.
+  // Enable in production: AUTH_ENABLED=true with AUTH_SESSION_SECRET set.
+  auth: {
+    enabled: process.env.AUTH_ENABLED === 'true',
+    sessionSecret: process.env.AUTH_SESSION_SECRET?.trim() || '',
+    cookieName: 'gs_session',
+    cookieMaxAgeMs: 1000 * 60 * 60 * 8, // 8 hours
+  },
+  // One-time bootstrap token. Required to create the first owner. Disabled after use.
+  setupToken: process.env.GARAGE_SETUP_TOKEN?.trim() || '',
   gnani: {
     baseUrl: 'https://api.vachana.ai',
     apiKey: process.env.GNANI_API_KEY_ID?.trim() || '',
@@ -39,6 +51,8 @@ export const config = {
 };
 
 export const gnaniConfigured = () => Boolean(config.gnani.apiKey);
+
+export const isAuthEnabled = () => config.auth.enabled === true;
 
 /** Live only when the developer opted in AND a key exists. Never silently upgrade. */
 export const aiMode = (): AiMode =>

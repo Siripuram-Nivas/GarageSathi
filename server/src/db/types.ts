@@ -18,6 +18,13 @@ export interface ServiceItem {
   lineTotalPaise: number;
 }
 
+export interface OwnerRecord {
+  id: string;
+  username: string;
+  passwordHash: string;
+  createdAt: string;
+}
+
 export type JobStatus =
   | 'RECEIVED'
   | 'INSPECTION'
@@ -86,6 +93,11 @@ export interface DataLayer {
     list(): Promise<JobDoc[]>;
     find(idOrJobId: string): Promise<JobDoc | null>;
     update(idOrJobId: string, patch: Partial<JobDoc>): Promise<JobDoc | null>;
+    reset(): Promise<void>;
+  };
+  auth: {
+    get(): Promise<OwnerRecord | null>;
+    create(input: { username: string; passwordHash: string }): Promise<OwnerRecord>;
     reset(): Promise<void>;
   };
   nextJobSeq(): Promise<number>;

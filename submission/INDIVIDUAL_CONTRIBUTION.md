@@ -25,7 +25,7 @@ I did not use AI to fabricate test results, screenshots, or integration claims. 
 
 ## What I did not do
 
-- I did not run a single live Gnani Prisma or Timbre request. All live code is implemented against the documentation but untested.
+- I ran one deliberate live smoke test per model (English speech in, real Telugu audio out). I did not run a full live Telugu job flow or a listening check.
 - I did not deploy the app. `DEPLOYMENT.md` is a procedure, not a record.
 - I did not configure Evon; the flow does not need it.
 - I did not add authentication, payments, WhatsApp delivery, or inventory. They are explicitly out of scope.
@@ -33,7 +33,7 @@ I did not use AI to fabricate test results, screenshots, or integration claims. 
 
 ## What I would do next, in order
 
-1. Add the Gnani key, run the smoke test, and record the real transcript and audio result.
+1. Run a real Telugu complaint through the live UI flow and record the transcript accuracy and audio result.
 2. Deploy API + client + Atlas and put the live URL in the README.
 3. Add auth and per-garage tenancy before any real customer data.
 4. Add Playwright coverage for the voice → approval → job path.

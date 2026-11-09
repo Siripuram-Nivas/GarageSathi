@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ClipboardList, LayoutDashboard, Menu, Mic, Settings, Sparkles, Wrench, X } from 'lucide-react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ClipboardList, LayoutDashboard, LogIn, LogOut, Menu, Mic, Settings, Sparkles, Wrench, X } from 'lucide-react';
 import { api } from '../lib/api';
-import { Badge, cn } from './ui';
+import { Badge, Button, cn } from './ui';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,7 +33,10 @@ export function Layout() {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'mock' | 'live' | 'offline'>('offline');
   const [dbMode, setDbMode] = useState<'mongodb' | 'file' | null>(null);
+  const [user, setUser] = useState<{ id: string; username: string } | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [garage, setGarage] = useState<GarageIdentity>(readGarage);
 
   useEffect(() => {
@@ -45,6 +48,24 @@ export function Layout() {
       })
       .catch(() => setMode('offline'));
   }, []);
+
+  useEffect(() => {
+    api.auth
+      .me()
+      .then((res) => setUser(res.user))
+      .catch(() => setUser(null))
+      .finally(() => setAuthChecked(true));
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await api.auth.logout();
+    } catch {
+      /* ignore logout errors */
+    }
+    setUser(null);
+    navigate('/login');
+  }
 
   useEffect(() => setGarage(readGarage()), [location.pathname]);
   useEffect(() => {
@@ -119,7 +140,21 @@ export function Layout() {
             <Menu size={18} />
           </button>
           <span className="font-semibold text-white">GarageSathi</span>
-          <span className="ml-auto">
+          <span className="ml-auto flex items-center gap-2">
+            {!authChecked ? null : user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">@{user.username}</span>
+                <Button variant="ghost" onClick={handleLogout}>
+                  <LogOut size={14} /> Sign out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/login">
+                <Button variant="secondary">
+                  <LogIn size={14} /> Sign in
+                </Button>
+              </Link>
+            )}
             {mode === 'live' ? <Badge tone="teal">LIVE</Badge> : mode === 'mock' ? <Badge tone="amber">MOCK</Badge> : <Badge tone="red">OFFLINE</Badge>}
           </span>
         </header>

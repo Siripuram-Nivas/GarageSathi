@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { DataLayer, JobDoc, ServiceDoc } from './types';
+import { DataLayer, JobDoc, ServiceDoc, OwnerRecord } from './types';
 import { config } from '../config';
 
 const serviceSchema = new Schema(
@@ -50,9 +50,19 @@ const jobSchema = new Schema(
 
 const counterSchema = new Schema({ _id: String, seq: Number });
 
+const ownerSchema = new Schema(
+  {
+    username: { type: String, required: true, unique: true },
+    passwordHash: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true },
+);
+
 const ServiceModel = mongoose.model('Service', serviceSchema);
 const JobModel = mongoose.model('JobCard', jobSchema);
 const CounterModel = mongoose.model('Counter', counterSchema);
+const OwnerModel = mongoose.model('Owner', ownerSchema);
 
 const toService = (d: any): ServiceDoc => ({
   id: String(d._id),
@@ -147,6 +157,30 @@ export const mongoDb: DataLayer = {
       await JobModel.deleteMany({});
     },
   },
+  auth: {
+    async get() {
+      const doc = await OwnerModel.findOne().lean();
+      if (!doc) return null;
+      return {
+        id: String(doc._id),
+        username: doc.username,
+        passwordHash: doc.passwordHash,
+        createdAt: doc.createdAt.toISOString(),
+      } as OwnerRecord;
+    },
+    async create(input) {
+      const created = await OwnerModel.create({ username: input.username, passwordHash: input.passwordHash });
+      return {
+        id: String(created._id),
+        username: created.username,
+        passwordHash: created.passwordHash,
+        createdAt: created.createdAt.toISOString(),
+      } as OwnerRecord;
+    },
+    async reset() {
+      await OwnerModel.deleteMany({});
+    },
+  },
   async nextJobSeq() {
     const counter = await CounterModel.findOneAndUpdate(
       { _id: 'jobs' },
@@ -156,7 +190,12 @@ export const mongoDb: DataLayer = {
     return counter?.seq ?? 1001;
   },
   async reset() {
-    await Promise.all([ServiceModel.deleteMany({}), JobModel.deleteMany({}), CounterModel.deleteMany({})]);
+    await Promise.all([
+      ServiceModel.deleteMany({}),
+      JobModel.deleteMany({}),
+      CounterModel.deleteMany({}),
+      OwnerModel.deleteMany({}),
+    ]);
   },
 };
 

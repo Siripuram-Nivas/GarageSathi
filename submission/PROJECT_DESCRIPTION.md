@@ -41,12 +41,12 @@ React 19 + Vite + TypeScript + Tailwind v4 on the client; Express 5 + TypeScript
 |---|---|
 | End-to-end workflow in mock mode | **Verified** manually in a browser and by 31 automated tests |
 | Server-side pricing and mandatory approval | **Verified** by tests |
-| Live Gnani Prisma transcription | **Not verified** — no secret was available in this build |
-| Live Gnani Timbre speech | **Not verified** — same reason |
+| Live Gnani Prisma transcription | **Verified for connectivity** with one English-input smoke test; Telugu accuracy unverified |
+| Live Gnani Timbre speech | **Verified** — one request returned real 48 kHz WAV audio |
 | Public deployment | **Not deployed** |
 | Evon reasoning model | **Not configured**, not used by the flow |
 
-The live code paths are written against the official Gnani documentation and are gated twice, but no live request has ever been made from this repository. Any claim beyond mock verification would be false.
+The live code paths are written against the official Gnani documentation and are gated twice. One deliberate smoke test on 2026-11-08 proved both endpoints; Telugu quality still needs a real recording.
 
 ## Impact if deployed
 

@@ -3,12 +3,17 @@ import multer from 'multer';
 import { ZodError } from 'zod';
 import { AppError } from './errors';
 import { MAX_AUDIO_BYTES } from './wav';
+import { config } from './config';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       requestId?: string;
+    }
+    interface Session {
+      user?: { id: string; username: string; role: 'owner' };
+      csrfToken?: string;
     }
   }
 }
@@ -37,6 +42,67 @@ export function rateLimit(max: number, windowMs = 60_000) {
     }
     next();
   };
+}
+
+/**
+ * Audio-specific rate limit: stricter than general routes to protect paid Gnani credits.
+ */
+export const audioRateLimit = rateLimit(8, 60_000);
+
+/**
+ * CSRF protection (double-submit cookie). Required for state-changing requests
+ * when cookie-based sessions are used. The client must read `X-CSRF-Token` from
+ * the session and send it back as the `X-CSRF-Token` header.
+ */
+type AuthedSession = Express.Session & {
+  user?: { id: string; username: string; role: 'owner' };
+  csrfToken?: string;
+};
+
+export type { AuthedSession };
+
+function sessionOf(req: Request): AuthedSession {
+  return req.session as unknown as AuthedSession;
+}
+
+export function csrfProtection(req: Request, _res: Response, next: NextFunction) {
+  const stateChanging = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method);
+  if (!stateChanging) return next();
+
+  const sess = sessionOf(req);
+  const token = req.header('x-csrf-token');
+  const expected = sess.csrfToken;
+  if (!expected || !token || token !== expected) {
+    throw new AppError(403, 'CSRF_TOKEN_REQUIRED', 'Missing or invalid CSRF token.');
+  }
+  next();
+}
+
+export function issueCsrfToken(req: Request, _res: Response, next: NextFunction) {
+  const sess = sessionOf(req);
+  if (!sess.csrfToken) {
+    sess.csrfToken = crypto.randomUUID();
+  }
+  _res.setHeader('X-CSRF-Token', sess.csrfToken);
+  next();
+}
+
+export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+  if (!sessionOf(req).user) {
+    throw new AppError(401, 'UNAUTHENTICATED', 'Sign in to perform this action.');
+  }
+  next();
+}
+
+export function requireOwner(req: Request, _res: Response, next: NextFunction) {
+  const sess = sessionOf(req);
+  if (!sess.user) {
+    throw new AppError(401, 'UNAUTHENTICATED', 'Sign in to perform this action.');
+  }
+  if (sess.user.role !== 'owner') {
+    throw new AppError(403, 'FORBIDDEN', 'Owner role required.');
+  }
+  next();
 }
 
 export const upload = multer({

@@ -7,12 +7,14 @@ import JobDetailPage from './pages/JobDetailPage';
 import ServicesPage from './pages/ServicesPage';
 import SettingsPage from './pages/SettingsPage';
 import AiStatusPage from './pages/AiStatusPage';
+import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="login" element={<LoginPage />} />
         <Route index element={<DashboardPage />} />
         <Route path="new" element={<NewJobPage />} />
         <Route path="jobs" element={<JobsPage />} />

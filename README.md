@@ -6,7 +6,7 @@ GarageSathi is a Telugu-first voice operations app for small two-wheeler garages
 
 Built for the **Great Indian AI Internship Challenge 2026 — Real Deal Award**.
 
-> **Current verification status:** the full workflow is verified in **mock mode** on a local machine. Live Gnani Prisma and Timbre paths are implemented but **have not been executed** in this build (no API secret was available). No public deployment exists. See `BRAIN/TEST_LOG.md` and `submission/FINAL_SUBMISSION_CHECKLIST.md`.
+> **Current verification status:** the full workflow is verified in **mock mode** on a local machine. Gnani Prisma and Timbre were each verified with **one live smoke test** (English speech in, real 48 kHz Telugu audio out), but Telugu transcription accuracy and the full live UI flow are still unverified. The app is **not deployed**. See `BRAIN/TEST_LOG.md` and `submission/FINAL_SUBMISSION_CHECKLIST.md`.
 
 ---
 
@@ -61,7 +61,7 @@ The app starts in **mock mode** with the six-service demo catalogue. No key, no 
 | `npm run dev` | API + Vite together |
 | `npm run dev:server` | API only |
 | `npm run dev:client` | Vite only |
-| `npm test` | Server (27) + client (4) tests |
+| `npm test` | Server (38) + client (4) tests |
 | `npm run typecheck` | TypeScript on both workspaces |
 | `npm run build` | Production build of server and client |
 | `npm run start` | Run the built server |
@@ -86,6 +86,9 @@ All variables live in the root `.env` (see `.env.example`). Never commit it.
 | `GNANI_TTS_MODEL` | `timbre-v2.5` | Timbre model |
 | `GNANI_TTS_VOICE` | `Varuni` | Voice from the documented Telugu list |
 | `EVON_ENABLED` | `false` | Optional Evon adapter |
+| `AUTH_ENABLED` | `false` | Set `true` to require owner sign-in for write routes (production) |
+| `AUTH_SESSION_SECRET` | empty | Session-signing secret (required when `AUTH_ENABLED=true`) |
+| `GARAGE_SETUP_TOKEN` | empty | One-time bootstrap token to create the first owner |
 
 ### Enabling live Gnani
 
@@ -107,13 +110,17 @@ client/                  React SPA
   src/lib/               typed API client, WAV encoding, INR helpers
 server/                  Express API
   src/routes.ts          all endpoints
+  src/auth.ts            argon2id hashing, owner bootstrap (opt-in auth)
+  src/authRoutes.ts      /api/auth/setup, /login, /logout, /me
+  src/middleware.ts      CSRF, requireAuth, requireOwner, rate limits
   src/catalogue.ts       seeds + Telugu/English alias matching
   src/extraction.ts      deterministic complaint parsing
   src/pricing.ts         paise estimate
   src/providers/         mock + live Gnani Prisma/Timbre, optional Evon
   src/db/                Mongoose and JSON-file stores
-  tests/                 27 Vitest/Supertest tests
+  tests/                 38 Vitest/Supertest tests (incl. security + auth)
 BRAIN/                   project memory: spec, architecture, APIs, decisions, logs
+SECURITY/                audit report, threat model, env audit, access matrix, remediation log, test matrix
 submission/              challenge documents and screenshots
 ```
 
@@ -126,6 +133,20 @@ submission/              challenge documents and screenshots
 - **Mock output is labelled** on screen and in the API (`X-AI-Mode`, `X-Audio-Mock`).
 - **No secret reaches the browser**; health/AI-status endpoints expose booleans only.
 
+## Security
+
+Authentication is **opt-in** and off by default so the app works out of the box. Before any production deployment:
+
+1. Set `AUTH_ENABLED=true` and a strong `AUTH_SESSION_SECRET` in the server environment.
+2. Set `GARAGE_SETUP_TOKEN`, call `POST /api/auth/setup` once to create the owner, then rotate/remove the token.
+3. Set `DEMO_MODE=false` and `CORS_ORIGIN=<your real frontend origin>`.
+4. Store `GNANI_API_KEY_ID` and `MONGODB_URI` in the hosting provider's secret manager (never in Git).
+5. Set `NODE_ENV=production` and confirm HTTPS before enabling HSTS.
+
+When enabled, write routes (`POST/PATCH /api/services`, `POST /api/demo/reset`, `PATCH /api/jobs/:id/status`, `POST /api/ai/smoke-test`) require an owner session and a `X-CSRF-Token` header. The frontend login page (`/login`) and Layout sign-in/sign-out are included; enable `AUTH_ENABLED` to use them.
+
+See `SECURITY/SECURITY_AUDIT.md` for the full audit report, threat model, and residual risks.
+
 ## Docs
 
 - Product and architecture: `BRAIN/PROJECT_SPEC.md`, `BRAIN/ARCHITECTURE.md`
@@ -137,7 +158,8 @@ submission/              challenge documents and screenshots
 
 ## Limitations
 
-- Live Gnani calls are unverified; only mock mode is proven.
+- Live Gnani calls are verified for connectivity and response handling with one smoke test each. Telugu transcription accuracy, a listening check, and the full live job flow are still pending.
+- Mock mode remains the default for a fresh checkout; the local `.env` may be set to live deliberately.
 - No auth or multi-tenancy. Intended for a single garage.
 - The JSON store is single-process; use MongoDB for anything shared.
 - Evon is not configured and is not used by the product flow.

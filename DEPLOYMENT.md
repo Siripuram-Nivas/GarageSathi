@@ -89,7 +89,7 @@ Run through this list and record the result:
 4. Set `ALLOW_GNANI_LIVE_TESTS=true` for one deliberate smoke test, then set it back to `false`.
 5. Verify the returned Telugu transcript and audio are real, and update the docs with the result.
 
-Until that is done, the honest public claim is: **mock-verified, live-integration implemented but untested.**
+Until a real Telugu clip is recorded, the honest public claim is: **mock-verified end to end; live Prisma/Timbre smoke-tested; Telugu quality pending.**
 
 ## 7. Rollback
 

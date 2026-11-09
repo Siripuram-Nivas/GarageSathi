@@ -47,6 +47,16 @@ export const api = {
   aiStatus: () => request<AiStatus>('/api/ai/status'),
   dashboard: () => request<DashboardData>('/api/dashboard'),
 
+  // Authentication (opt-in on the server)
+  auth: {
+    login: (body: { username: string; password: string }) =>
+      request<{ ok: boolean; user: { id: string; username: string } }>('/api/auth/login', json('POST', body)),
+    logout: () => request<{ ok: boolean }>('/api/auth/logout', json('POST', {})),
+    me: () => request<{ user: { id: string; username: string; role: string } }>('/api/auth/me'),
+    setup: (body: { token: string; username: string; password: string }) =>
+      request<{ owner: { id: string; username: string; createdAt: string } }>('/api/auth/setup', json('POST', body)),
+  },
+
   services: () => request<{ services: Service[] }>('/api/services?includeInactive=1'),
   createService: (body: Partial<Service>) => request<{ service: Service }>('/api/services', json('POST', body)),
   updateService: (id: string, body: Partial<Service>) =>

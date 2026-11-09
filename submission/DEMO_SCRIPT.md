@@ -50,4 +50,4 @@ Dashboard → record a Telugu complaint → labelled transcript → matched serv
 - Repository link.
 - `submission/screenshots/` (7 images).
 - Test evidence: 27 server + 4 client tests, typecheck, production build.
-- One line on status: "Mock-verified end to end; live Gnani paths implemented but not yet verified."
+- One line on status: "Mock-verified end to end; live Prisma/Timbre smoke-tested; Telugu quality pending."

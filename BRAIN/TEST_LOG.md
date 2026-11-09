@@ -1,12 +1,12 @@
 # TEST LOG
 
-Environment: Windows, Node 20+, local dev servers (`API :4000`, `Vite :5173`), `AI_PROVIDER_MODE=mock`, file store `data/db.json`, no Gnani key.
+Environment: Windows, Node 24.12.0, local dev servers (`API :4000`, `Vite :5173`), `AI_PROVIDER_MODE=mock`, file store `data/db.json`. Gnani live smoke test executed once (English input), then returned to mock mode.
 
 ## 2026-11-08 — Automated suite
 
 `npm test` at repository root:
 
-- **Server — 27 passed / 27** (2 files, Vitest 2.1.9)
+- **Server — 38 passed / 38** (3 files, Vitest 2.1.9)
   - `tests/api.test.ts` — 15 tests:
     - health without secret leakage
     - seeded catalogue
@@ -29,6 +29,18 @@ Environment: Windows, Node 20+, local dev servers (`API :4000`, `Vite :5173`), `
     - paise line totals; quantity clamp 1..20; unknown service rejection
     - real PCM WAV accepted with duration; renamed non-WAV rejected
     - Telugu number words; job confirmation text
+  - `tests/security.test.ts` — 11 tests:
+    - `requireAuth` rejects missing session user / passes with user
+    - `requireOwner` rejects missing user / non-owner / passes owner
+    - CSRF: missing token, mismatched token, matching token, ignores GET
+    - `issueCsrfToken` creates and returns token
+    - rate limit: 429 after exceeding limit
+  - `tests/auth.integration.test.ts` — 8 tests:
+    - setup creates first owner; repeat setup → 409; invalid token → 401
+    - login wrong creds → generic 401; login success → session cookie
+    - authenticated owner creates service (with CSRF token)
+    - unauthenticated service creation → 401
+    - logout clears session (subsequent create → 401)
 - **Client — 4 passed / 4** (2 files)
   - WAV encoding produces a valid RIFF/WAVE header, 16-bit mono PCM
   - INR formatting; human status labels; valid next statuses only
@@ -36,6 +48,18 @@ Environment: Windows, Node 20+, local dev servers (`API :4000`, `Vite :5173`), `
 `npm run typecheck`: passes for server and client.
 
 `npm run build`: passes — server `tsc`, client `vite build`. Only warning: Vite chunk-size advisory.
+
+`npm audit`: 7 findings (all dev-tooling `esbuild`/`tinypool` via vitest, plus production `zod <4.6.6` mitigated by 120kb body limit and array caps; NOT force-fixed — zod fix is a major breaking change).
+
+
+Gate: `AI_PROVIDER_MODE=live` + `ALLOW_GNANI_LIVE_TESTS=true` for this single run, then `ALLOW_GNANI_LIVE_TESTS` reset to `false`. Key lives only in the root `.env`; the value is not recorded in the repository or this log.
+
+- **Input:** 4.4 s 16-bit PCM WAV generated locally with Microsoft Zira (English). No Telugu recording was available in this session.
+- **Prisma v3.0:** HTTP 200. Transcript: `Ravi Kumar, Honda Activa brake sound is coming. Please change the engine oil.` Detected language `en-IN`. Provider request ID `01a1bc47-965a-7105-9d4a-1b9db5043075`.
+- **Timbre v2.5, voice Varuni:** HTTP 200, `audio/wav`, 276,524 bytes, 48 kHz mono 16-bit, ≈2.88 s. Saved as `submission/live-smoke-tts.wav`.
+- **Proven:** credentials, endpoints, multipart/JSON request shapes, response parsing, and binary audio handling against the live API.
+- **Still unverified:** Telugu transcription accuracy (input was English), a listening check of the Telugu confirmation, and the full live job flow through the UI.
+- Note: the returned WAV header uses `0xFFFFFFFF` as the data-chunk size (streaming placeholder). Common players tolerate it; patch the RIFF/data sizes in the proxy if a browser refuses to play it.
 
 ## 2026-11-08 — Manual browser pass (mock mode)
 
@@ -63,12 +87,24 @@ Also fixed during this pass: detected language now passed through from Prisma re
 
 | Item | Reason |
 |---|---|
-| Live Gnani Prisma v3.0 call | No `GNANI_API_KEY_ID` in this build; never executed |
-| Live Gnani Timbre v2.5 call | Same |
-| Real Telugu transcript accuracy | Cannot be measured without live STT |
-| Real Telugu audio quality | Cannot be measured without live TTS |
+| Telugu transcription accuracy | Smoke-test input was English; no Telugu clip was recorded in this session |
+| Telugu audio listening check | Audio bytes verified, but no human listening test of Varuni output was done |
+| Full live job flow through the UI (record → transcript → approve → status → speak) | Not exercised; smoke test covers only provider calls |
 | Deployment | Not deployed; no hosting credentials/approval |
-| Playwright E2E | Not written; flow validated manually |
+| Playwright E2E | Not written (manual validation only) |
 | MongoDB/Mongoose path | Not exercised against a real cluster; file store used |
+| Authentication enabled in production | `AUTH_ENABLED=false` default; not yet turned on for a real deployment |
+| First-owner bootstrap run | No owner account created yet; requires `GARAGE_SETUP_TOKEN` + manual setup call |
+| GitHub secret scanning / push protection | No repository hosted; not configured |
 
-Any statement that live Gnani integration works is unsupported until the smoke test is run and recorded above.
+**Security findings remediated** (see `SECURITY/SECURITY_AUDIT.md`):
+- F-01 No auth → opt-in session auth added (FIXED, off by default)
+- F-02 No CSRF → double-submit CSRF added (FIXED)
+- F-03 CORS all origins in dev → explicit allowlist (FIXED)
+- F-04 No security headers → Helmet + CSP added (FIXED)
+- F-05 Demo reset on by default → auth-gated when enabled (FIXED)
+- F-06 Smoke test returned raw audio base64 → removed (FIXED)
+- F-07 In-memory IP rate limit → stricter audio limit; shared-store guidance documented (PARTIAL)
+- F-08/F-09/F-10 dependency vulns / file-store encryption / CI secret scanning → documented residual risks
+
+Do not generalise the smoke test into "Telugu works end to end". It proves the API integration; Telugu quality still needs a real recording.

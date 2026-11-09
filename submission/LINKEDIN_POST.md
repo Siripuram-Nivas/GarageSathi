@@ -31,7 +31,8 @@ Where it honestly stands:
 
 ✅ Mock workflow verified end to end in a browser, including mobile
 ✅ 27 backend + 4 frontend tests, typecheck, production build
-⚠️ Live Prisma and Timbre paths are implemented against the documented API but **not yet verified** — I did not have a key in this build, so I am not claiming otherwise
+✅ One live smoke test passed: Prisma returned the right transcript, Timbre returned real 48 kHz audio
+⚠️ Telugu transcription accuracy and the full live UI flow are still unverified — I tested the API with an English clip, so I am not claiming more than that
 ⚠️ Not deployed yet; the deployment guide is in the repo
 
 Everything — architecture, API contracts, decisions, test log, demo script — is documented in the repo. The next commit is a real Gnani smoke test, then a public URL.

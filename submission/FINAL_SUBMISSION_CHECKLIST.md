@@ -22,8 +22,9 @@ Status as of 2026-11-08. Anything not ticked is genuinely not done.
 - [x] Manual browser pass: upload WAV → mock transcript → edit → preview ₹550 → approve → `GS-1001` → mock confirmation labelled → status `IN_PROGRESS` with history → dashboard reflects 1 job / ₹550.
 - [x] Catalogue price edit and revert verified.
 - [x] Mobile sidebar/drawer verified.
-- [ ] **Live Gnani Prisma call — BLOCKED**, no secret available.
-- [ ] **Live Gnani Timbre call — BLOCKED**, same.
+- [x] **Live Gnani Prisma call — VERIFIED** (one smoke test, HTTP 200, correct transcript, `en-IN`). Telugu accuracy still untested.
+- [x] **Live Gnani Timbre call — VERIFIED** (one smoke test, 48 kHz mono WAV, Varuni). Listening check pending.
+- [ ] Full live UI flow with a real Telugu clip — not exercised.
 - [ ] Automated Playwright E2E — not written (manual validation only).
 
 ## Submission pack
@@ -55,18 +56,19 @@ Status as of 2026-11-08. Anything not ticked is genuinely not done.
 Say this:
 
 - "Mock workflow verified end to end."
-- "Live Gnani integration implemented against the documented API; not yet verified."
+- "Live Prisma and Timbre each passed one smoke test; transmission and audio generation are proven."
+- "Telugu transcription accuracy is the next thing to measure."
 - "Not deployed."
 
 Never say:
 
-- "Live transcription works" or "Telugu audio works" — untested.
+- "Telugu works end to end" — the live smoke input was English; no Telugu clip has been tested yet.
 - "Deployed" / "live at …" — no URL exists.
 - "Uses Evon" — the adapter is disabled and unused.
 - "AI-approved estimate" — the mechanic approves; AI never does.
 
 ## Next three actions
 
-1. Add `GNANI_API_KEY_ID`, set live + allow-live, run the single smoke test, record the result.
+1. Record a real Telugu clip, run it through the live UI flow, play the Varuni audio, and record accuracy notes.
 2. Deploy API + client + Atlas; add the URL and a real health-check screenshot.
-3. Record the demo video using `DEMO_SCRIPT.md` and publish with the honest status line.
+3. Record the demo video using `DEMO_SCRIPT.md` and publish with the honest status line. Rotate the Gnani key afterwards.
