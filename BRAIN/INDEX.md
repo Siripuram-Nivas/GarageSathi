@@ -14,7 +14,7 @@
 
 - **Phase:** Phase 10 — UI/UX enhancement & interaction engineering complete; deployment pending.
 - **Application state:** Working locally. Mock AI mode by default. Live Gnani Prisma + Timbre verified with one deliberate smoke test (English input); Telugu accuracy still unmeasured. Opt-in session authentication implemented (off by default). Polished UI: collapsible sidebar, command palette, keyboard shortcuts, skeletons, sortable/paginated jobs table with bulk status, draft autosave/recovery, accessible dialogs, reduced-motion support.
-- **Verification:** 47 server + 18 client tests (65 total), typecheck, production build, manual+scripted browser passes (desktop 1440×900 and mobile 390×780), and one live provider smoke test — see `TEST_LOG.md`. Security audit pack in `SECURITY/`. Deployment: not deployed.
+- **Verification:** 51 server + 30 client tests (81 total), typecheck, production build, manual+scripted browser passes (desktop 1440×900 and mobile 390×780), New Job voice-orb browser rendering, and one live provider smoke test — see `TEST_LOG.md`. Security audit pack in `SECURITY/`. Deployment: not deployed.
 
 ## Stack
 

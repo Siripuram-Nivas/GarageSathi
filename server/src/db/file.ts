@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { JobDoc, ServiceDoc, DataLayer, OwnerRecord } from './types';
+import { JobDoc, ServiceDoc, DataLayer, OwnerRecord, GaragePriceDoc } from './types';
 import { config } from '../config';
 
 interface FileDb {
@@ -8,6 +8,7 @@ interface FileDb {
   services: ServiceDoc[];
   jobs: JobDoc[];
   owner: OwnerRecord | null;
+  garagePrices: GaragePriceDoc[];
 }
 
 const dbPath = path.join(config.dataDir, 'db.json');
@@ -20,8 +21,10 @@ function load(): FileDb {
   try {
     state = JSON.parse(fs.readFileSync(dbPath, 'utf8')) as FileDb;
   } catch {
-    state = { seq: 1000, services: [], jobs: [], owner: null };
+    state = { seq: 1000, services: [], jobs: [], owner: null, garagePrices: [] };
   }
+  // Existing db.json files predate garage price overrides.
+  if (!Array.isArray(state!.garagePrices)) state!.garagePrices = [];
   return state!;
 }
 
@@ -116,6 +119,33 @@ export const fileDb: DataLayer = {
       await persist();
     },
   },
+  garagePrices: {
+    async list(garageId) {
+      return load().garagePrices.filter((p) => p.garageId === garageId);
+    },
+    async upsert(input) {
+      const db = load();
+      const existing = db.garagePrices.find((p) => p.garageId === input.garageId && p.serviceId === input.serviceId);
+      if (existing) {
+        Object.assign(existing, { pricePaise: input.pricePaise, updatedBy: input.updatedBy, updatedAt: now() });
+        await persist();
+        return existing;
+      }
+      const record: GaragePriceDoc = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      db.garagePrices.push(record);
+      await persist();
+      return record;
+    },
+    async reset() {
+      load().garagePrices = [];
+      await persist();
+    },
+  },
   async nextJobSeq() {
     const db = load();
     db.seq += 1;
@@ -123,7 +153,7 @@ export const fileDb: DataLayer = {
     return db.seq;
   },
   async reset() {
-    state = { seq: 1000, services: [], jobs: [], owner: null };
+    state = { seq: 1000, services: [], jobs: [], owner: null, garagePrices: [] };
     await persist();
   },
 };

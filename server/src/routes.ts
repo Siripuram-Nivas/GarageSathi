@@ -5,6 +5,7 @@ import { JOB_STATUSES, JobDoc, JobStatus, ServiceDoc } from './db/types';
 import { AppError } from './errors';
 import { extract } from './extraction';
 import { buildEstimate } from './pricing';
+import { listGarageServices, setGaragePrice, MAX_PRICE_PAISE } from './garagePricing';
 import { aiMode, config, isAuthEnabled } from './config';
 import { aiStatus, speak, transcribe } from './providers/ai';
 import { evonExtract } from './providers/evon';
@@ -54,13 +55,8 @@ const bulkStatusSchema = z.object({
   note: z.string().trim().max(300).optional(),
 });
 
-const serviceSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  description: z.string().trim().max(300).optional().default(''),
-  aliases: z.array(z.string().trim().min(1).max(60)).max(20).optional().default([]),
-  pricePaise: z.number().int().min(0).max(10_000_000),
-  category: z.string().trim().max(40).optional().default('General'),
-  isActive: z.boolean().optional().default(true),
+const servicePriceSchema = z.object({
+  pricePaise: z.number().int().min(0).max(MAX_PRICE_PAISE),
 });
 
 const NEXT_STATUS: Record<JobStatus, JobStatus[]> = {
@@ -118,23 +114,20 @@ router.get('/health', async (_req, res) => {
 router.get('/services', async (req, res) => {
   const db = await getDb();
   const includeInactive = req.query.includeInactive === '1' || req.query.includeInactive === 'true';
-  const services = await db.services.list();
+  const services = await listGarageServices(db, config.garageId);
   res.json({ services: includeInactive ? services : services.filter((s) => s.isActive) });
 });
 
-router.post('/services', rateLimit(20), ...ownerWrite(), async (req, res) => {
-  const input = parse(serviceSchema, req.body);
+// Garage owners may change only their own price for a predefined service.
+// Service names, categories, aliases and the central default are read-only.
+// Arbitrary catalogue creation is intentionally not exposed (no owner-facing
+// POST /services); canonical definitions are seeded by the platform.
+router.patch('/services/:id/price', rateLimit(60), ...ownerWrite(), async (req, res) => {
+  const input = parse(servicePriceSchema, req.body);
   const db = await getDb();
-  const existing = (await db.services.list()).find((s) => s.name.toLowerCase() === input.name.toLowerCase());
-  if (existing) throw new AppError(409, 'DUPLICATE_SERVICE', 'A service with that name already exists.');
-  const service = await db.services.create(input);
-  res.status(201).json({ service });
-});
-
-router.patch('/services/:id', rateLimit(60), ...ownerWrite(), async (req, res) => {
-  const input = parse(serviceSchema.partial(), req.body);
-  const db = await getDb();
-  const service = await db.services.update(String(req.params.id), input);
+  const updatedBy = (req.session as { user?: { username: string } } | undefined)?.user?.username ?? 'local-owner';
+  await setGaragePrice(db, config.garageId, String(req.params.id), input.pricePaise, updatedBy);
+  const service = (await listGarageServices(db, config.garageId)).find((s) => s.id === String(req.params.id));
   if (!service) throw new AppError(404, 'SERVICE_NOT_FOUND', 'Service not found.');
   res.json({ service });
 });
@@ -167,7 +160,7 @@ router.post('/voice/speak', audioRateLimit, async (req, res) => {
 
 router.post('/jobs/preview', rateLimit(30), async (req, res) => {
   const input = parse(jobSchema, req.body);
-  const services = await (await getDb()).services.list();
+  const services = await listGarageServices(await getDb(), config.garageId);
   const preview = await buildPreview(input, services);
   res.json(preview);
 });
@@ -175,7 +168,7 @@ router.post('/jobs/preview', rateLimit(30), async (req, res) => {
 router.post('/jobs', rateLimit(20), async (req, res) => {
   const input = parse(createJobSchema, req.body);
   const db = await getDb();
-  const services = await db.services.list();
+  const services = await listGarageServices(db, config.garageId);
   const preview = await buildPreview(input, services);
   if (!preview.serviceItems.length) {
     throw new AppError(422, 'EMPTY_ESTIMATE', 'Select at least one catalogue service before saving.');

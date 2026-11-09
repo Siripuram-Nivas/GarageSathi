@@ -12,7 +12,6 @@ export const COMMANDS: Command[] = [
   { id: 'jobs', label: 'Job cards', hint: 'Search, sort and update jobs', to: '/jobs', keys: 'g j' },
   { id: 'services', label: 'Service catalogue', hint: 'Prices and availability', to: '/services', keys: 'g s' },
   { id: 'settings', label: 'Garage settings', hint: 'Profile and demo controls', to: '/settings' },
-  { id: 'ai', label: 'AI integration', hint: 'Provider mode and model status', to: '/ai' },
 ];
 
 export function filterCommands(commands: Command[], query: string) {

@@ -41,7 +41,7 @@ export default function AiStatusPage() {
     }
   }
 
-  if (error) return <Card className="p-8 text-center text-rose-300">{error}</Card>;
+  if (error) return <Card className="p-8 text-center text-rose-600">{error}</Card>;
   if (!ai) return <Spinner label="Checking Gnani integration readiness…" />;
 
   const liveReady = ai.mode === 'live' && ai.gnaniConfigured && ai.allowLiveTests;
@@ -51,13 +51,13 @@ export default function AiStatusPage() {
       <PageHeader
         title="AI integration status"
         subtitle="What the backend will call, and whether live mode is actually enabled."
-        actions={<Badge tone={ai.mode === 'live' ? 'teal' : 'amber'}>{ai.mode === 'live' ? 'LIVE GNANI AI MODE' : 'MOCK MODE'}</Badge>}
+        actions={<Badge tone={ai.mode === 'live' ? 'aubergine' : 'marigold'}>{ai.mode === 'live' ? 'LIVE GNANI AI MODE' : 'MOCK MODE'}</Badge>}
       />
 
       {ai.notes.length > 0 && (
         <div className="mb-4 space-y-2">
           {ai.notes.map((note) => (
-            <div key={note} className="flex items-start gap-2 rounded-xl border border-sky-400/30 bg-sky-400/5 p-3 text-sm text-sky-200">
+            <div key={note} className="flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-700">
               <Info size={16} className="mt-0.5 shrink-0" /> {note}
             </div>
           ))}
@@ -105,10 +105,10 @@ export default function AiStatusPage() {
       </div>
 
       <Card className="mt-4 p-5">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-slate-200">
+        <h2 className="flex items-center gap-2 text-sm font-medium text-deep-aubergine font-serif">
           <FlaskConical size={16} /> One-time live smoke test
         </h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted">
           Sends exactly one Prisma request and one Timbre request. It consumes programme credits and must be enabled deliberately.
         </p>
 
@@ -119,51 +119,51 @@ export default function AiStatusPage() {
                 type="file"
                 accept="audio/*"
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                className="block w-full rounded-xl border border-ink-600 bg-ink-900/70 p-2 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-ink-700 file:px-3 file:py-1.5 file:text-slate-200"
+                className="block w-full rounded-xl border border-border bg-white p-2 text-sm text-deep-aubergine file:mr-3 file:rounded-lg file:border-0 file:bg-ice-silver file:px-3 file:py-1.5 file:text-deep-aubergine"
               />
             </Field>
             <Button onClick={runSmokeTest} loading={running} disabled={!liveReady}>
               Run one live test
             </Button>
             {!liveReady && (
-              <p className="flex items-start gap-2 text-xs text-amber-300">
+              <p className="flex items-start gap-2 text-xs text-marigold">
                 <ShieldAlert size={14} className="mt-0.5 shrink-0" />
                 Disabled. Requires AI_PROVIDER_MODE=live, a configured key and ALLOW_GNANI_LIVE_TESTS=true.
               </p>
             )}
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               After testing, set ALLOW_GNANI_LIVE_TESTS=false again to avoid accidental spend.
             </p>
           </div>
 
-          <div className="rounded-xl border border-ink-600 bg-ink-900/50 p-4">
+          <div className="rounded-xl border border-border bg-white p-4">
             {!result ? (
-              <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-sm text-slate-500">
+              <div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center text-sm text-muted">
                 <AlertTriangle size={18} />
                 No live result yet. Nothing has been sent to Gnani in this session.
               </div>
             ) : (
-              <div className="space-y-3 text-sm text-slate-300">
-                <p className="flex items-center gap-2 text-teal-300">
+              <div className="space-y-3 text-sm text-deep-aubergine">
+                <p className="flex items-center gap-2 text-emerald-700">
                   <CheckCircle2 size={16} /> Smoke test returned
                 </p>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Transcript</p>
-                  <p className="mt-1 rounded-lg border border-ink-600 p-2">{result.stt.transcript}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="text-xs uppercase tracking-wide text-muted">Transcript</p>
+                  <p className="mt-1 rounded-lg border border-border p-2">{result.stt.transcript}</p>
+                  <p className="mt-1 text-xs text-muted">
                     {result.stt.detectedLanguage || 'language not reported'} · request {result.stt.requestId || 'n/a'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Timbre audio</p>
-                  <p className="mt-1 rounded-lg border border-ink-600 p-2">
+                  <p className="text-xs uppercase tracking-wide text-muted">Timbre audio</p>
+                  <p className="mt-1 rounded-lg border border-border p-2">
                     {result.tts.bytes} bytes of {result.tts.contentType} returned.
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted">
                     The smoke-test response no longer embeds audio. Play a confirmation from a saved job card to listen.
                   </p>
                 </div>
-                <p className="text-xs text-slate-500">{result.note}</p>
+                <p className="text-xs text-muted">{result.note}</p>
               </div>
             )}
           </div>
@@ -190,20 +190,20 @@ function ProviderCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="font-medium text-white">{title}</h2>
-          <p className="text-xs text-slate-500">{subtitle}</p>
+          <h2 className="font-medium text-deep-aubergine">{title}</h2>
+          <p className="text-xs text-muted">{subtitle}</p>
         </div>
-        <Badge tone={ready ? 'teal' : 'amber'}>{ready ? 'CONFIGURED' : 'NOT CONFIGURED'}</Badge>
+        <Badge tone={ready ? 'aubergine' : 'marigold'}>{ready ? 'CONFIGURED' : 'NOT CONFIGURED'}</Badge>
       </div>
       <dl className="mt-4 space-y-2 text-sm">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-700 pb-2 last:border-0">
-            <dt className="text-slate-500">{label}</dt>
-            <dd className="max-w-[70%] break-words text-right text-slate-300">{value}</dd>
+          <div key={label} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2 last:border-0">
+            <dt className="text-muted">{label}</dt>
+            <dd className="max-w-[70%] break-words text-right text-deep-aubergine">{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-xs text-slate-500">{footer}</p>
+      <p className="mt-3 text-xs text-muted">{footer}</p>
     </Card>
   );
 }

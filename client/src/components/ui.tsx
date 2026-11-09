@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type HTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
@@ -20,9 +21,9 @@ export const cn = (...parts: Array<string | false | null | undefined>) => parts.
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 const buttonStyles: Record<Variant, string> = {
-  primary: 'bg-teal-400 text-ink-950 hover:bg-teal-300 focus-visible:outline-teal-300 font-semibold',
-  secondary: 'bg-ink-700 text-slate-100 hover:bg-ink-600 border border-ink-600',
-  ghost: 'text-slate-300 hover:bg-ink-700 hover:text-white',
+  primary: 'bg-marigold text-deep-aubergine hover:bg-amber-500 focus-visible:outline-deep-aubergine font-semibold',
+  secondary: 'bg-deep-aubergine text-white hover:bg-deep-aubergine/90 border border-deep-aubergine',
+  ghost: 'text-deep-aubergine hover:bg-ice-silver hover:text-deep-aubergine',
   danger: 'bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25',
 };
 
@@ -49,19 +50,27 @@ export function Button({
   );
 }
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <div className={cn('rounded-2xl border border-ink-700 bg-ink-850/80 shadow-lg shadow-black/10', className)}>{children}</div>;
+export function Card({
+  className,
+  children,
+  ...props
+}: { className?: string; children: ReactNode } & HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('glass-panel rounded-2xl', className)} {...props}>
+      {children}
+    </div>
+  );
 }
 
-type Tone = 'neutral' | 'teal' | 'amber' | 'sky' | 'green' | 'red';
+type Tone = 'neutral' | 'aubergine' | 'marigold' | 'sky' | 'green' | 'red';
 
 const tones: Record<Tone, string> = {
-  neutral: 'bg-ink-700 text-slate-300 border-ink-600',
-  teal: 'bg-teal-400/10 text-teal-300 border-teal-400/30',
-  amber: 'bg-amber-400/10 text-amber-300 border-amber-400/30',
-  sky: 'bg-sky-400/10 text-sky-300 border-sky-400/30',
-  green: 'bg-emerald-400/10 text-emerald-300 border-emerald-400/30',
-  red: 'bg-rose-400/10 text-rose-300 border-rose-400/30',
+  neutral: 'bg-ice-silver text-deep-aubergine border-border',
+  aubergine: 'bg-deep-aubergine/10 text-deep-aubergine border-deep-aubergine/30',
+  marigold: 'bg-marigold/10 text-marigold border-marigold/30',
+  sky: 'bg-sky-100 text-sky-700 border-sky-200',
+  green: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  red: 'bg-rose-100 text-rose-700 border-rose-200',
 };
 
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
@@ -75,11 +84,11 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
 export function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-muted">{label}</span>
       {children}
-      {hint && !error && <span className="block text-xs text-slate-500">{hint}</span>}
+      {hint && !error && <span className="block text-xs text-muted">{hint}</span>}
       {error && (
-        <span role="alert" className="block text-xs text-rose-400">
+        <span role="alert" className="block text-xs text-rose-600">
           {error}
         </span>
       )}
@@ -88,7 +97,7 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
 }
 
 const control =
-  'w-full rounded-xl border border-ink-600 bg-ink-900/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-teal-400/60 focus:outline-none focus:ring-2 focus:ring-teal-400/20';
+  'w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-deep-aubergine placeholder:text-muted focus:border-deep-aubergine focus:outline-none focus:ring-2 focus:ring-deep-aubergine/20';
 
 const invalidControl = 'border-rose-500/60 focus:border-rose-400/60 focus:ring-rose-400/20';
 
@@ -105,13 +114,13 @@ export const Select = ({ invalid, className, ...props }: SelectHTMLAttributes<HT
 );
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={cn('motion-safe:animate-pulse rounded-lg bg-ink-700/70', className)} />;
+  return <div aria-hidden="true" className={cn('glass-skeleton rounded-lg', className)} />;
 }
 
 export function Spinner({ label = 'Loading…' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 p-8 text-sm text-slate-400">
-      <Loader2 size={18} className="animate-spin text-teal-300" /> {label}
+    <div className="flex items-center gap-3 p-8 text-sm text-muted">
+      <Loader2 size={18} className="animate-spin text-deep-aubergine" /> {label}
     </div>
   );
 }
@@ -119,12 +128,12 @@ export function Spinner({ label = 'Loading…' }: { label?: string }) {
 export function EmptyState({ title, hint, action }: { title: string; hint: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 p-12 text-center">
-      <div className="rounded-2xl border border-ink-600 bg-ink-800 p-3 text-slate-400">
+      <div className="rounded-2xl border border-border bg-white p-3 text-muted">
         <Inbox size={22} />
       </div>
       <div>
-        <p className="font-medium text-slate-200">{title}</p>
-        <p className="mt-1 text-sm text-slate-400">{hint}</p>
+        <p className="font-medium text-deep-aubergine">{title}</p>
+        <p className="mt-1 text-sm text-muted">{hint}</p>
       </div>
       {action}
     </div>
@@ -135,8 +144,8 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-deep-aubergine font-serif">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -165,12 +174,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             className={cn(
-              'pointer-events-auto flex items-start gap-2 rounded-xl border p-3 text-sm shadow-xl backdrop-blur',
+              'glass-toast pointer-events-auto flex items-start gap-2 rounded-xl border p-3 text-sm',
               toast.kind === 'error'
-                ? 'border-rose-500/40 bg-rose-950/90 text-rose-100'
+                ? 'border-rose-300 bg-rose-50 text-rose-800'
                 : toast.kind === 'success'
-                  ? 'border-teal-400/40 bg-teal-950/90 text-teal-100'
-                  : 'border-ink-600 bg-ink-800/95 text-slate-200',
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                : 'border-border bg-white text-deep-aubergine',
             )}
           >
             {toast.kind === 'error' ? <AlertTriangle size={16} className="mt-0.5 shrink-0" /> : <CheckCircle2 size={16} className="mt-0.5 shrink-0" />}
@@ -246,7 +255,7 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-deep-aubergine/35 p-4 backdrop-blur-sm"
       onClick={dismissOnBackdrop ? onClose : undefined}
     >
       <div
@@ -254,18 +263,18 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-2xl border border-ink-600 bg-ink-850 p-5 shadow-2xl"
+        className="glass-dialog w-full max-w-md rounded-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-4">
-          <h2 id={titleId} className="text-lg font-semibold text-white">
+          <h2 id={titleId} className="text-lg font-semibold text-deep-aubergine font-serif">
             {title}
           </h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-ink-700 hover:text-white" aria-label="Close dialog">
+          <button onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-ice-silver hover:text-deep-aubergine" aria-label="Close dialog">
             <X size={16} />
           </button>
         </div>
-        <div className="text-sm text-slate-300">{children}</div>
+        <div className="text-sm text-muted">{children}</div>
         {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
       </div>
     </div>

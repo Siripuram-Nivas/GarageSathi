@@ -34,6 +34,13 @@ export function encodeWav(chunks: Float32Array[], sampleRate: number): Blob {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
+export function getVoiceLevel(samples: Float32Array): number {
+  if (!samples.length) return 0;
+  let sumSquares = 0;
+  for (const sample of samples) sumSquares += sample * sample;
+  return Math.min(1, Math.sqrt(sumSquares / samples.length) * 12);
+}
+
 export interface RecordedAudio {
   blob: Blob;
   url: string;
@@ -42,6 +49,7 @@ export interface RecordedAudio {
 
 interface Handlers {
   onTick: (seconds: number) => void;
+  onLevel: (level: number) => void;
   onAutoStop: () => void;
 }
 
@@ -74,7 +82,9 @@ export const recorder = {
     gain.gain.value = 0; // keep the graph alive without echo
     processor.onaudioprocess = (event) => {
       if (!ctx) return;
-      chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      const frameSamples = event.inputBuffer.getChannelData(0);
+      chunks.push(new Float32Array(frameSamples));
+      handlers?.onLevel(getVoiceLevel(frameSamples));
       samples += event.inputBuffer.length;
       const seconds = samples / rate;
       handlers?.onTick(Math.min(MAX_SECONDS, seconds));

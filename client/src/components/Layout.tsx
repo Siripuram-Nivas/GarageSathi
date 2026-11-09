@@ -11,7 +11,6 @@ import {
   PanelLeftOpen,
   Search,
   Settings,
-  Sparkles,
   Wrench,
   X,
 } from 'lucide-react';
@@ -22,11 +21,10 @@ import { Badge, Button, cn } from './ui';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/new', label: 'New Voice Job', icon: Mic },
+  { to: '/new', label: 'New Job', icon: Mic },
   { to: '/jobs', label: 'Job Cards', icon: ClipboardList },
   { to: '/services', label: 'Service Catalogue', icon: Wrench },
   { to: '/settings', label: 'Garage Settings', icon: Settings },
-  { to: '/ai', label: 'AI Integration', icon: Sparkles },
 ];
 
 export interface GarageIdentity {
@@ -57,8 +55,7 @@ export function Layout() {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = usePersistentState('garagesathi.sidebarCollapsed', false);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [mode, setMode] = useState<'mock' | 'live' | 'offline'>('offline');
-  const [dbMode, setDbMode] = useState<'mongodb' | 'file' | null>(null);
+  const [offline, setOffline] = useState(false);
   const [user, setUser] = useState<{ id: string; username: string } | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const location = useLocation();
@@ -70,11 +67,8 @@ export function Layout() {
   useEffect(() => {
     api
       .health()
-      .then((health) => {
-        setMode(health.ai.mode);
-        setDbMode(health.db.mode);
-      })
-      .catch(() => setMode('offline'));
+      .then(() => setOffline(false))
+      .catch(() => setOffline(true));
   }, []);
 
   useEffect(() => {
@@ -149,7 +143,7 @@ export function Layout() {
       if (pendingG) {
         pendingG = false;
         if (timer) clearTimeout(timer);
-        const routes: Record<string, string> = { d: '/', j: '/jobs', s: '/services', a: '/ai' };
+        const routes: Record<string, string> = { d: '/', j: '/jobs', s: '/services' };
         const to = routes[event.key.toLowerCase()];
         if (to) {
           event.preventDefault();
@@ -175,27 +169,38 @@ export function Layout() {
   const hideWhenCollapsed = collapsed && 'lg:hidden';
 
   return (
-    <div className="min-h-screen bg-ink-900">
+    <div className="app-canvas min-h-screen">
       <aside
         id="app-sidebar"
         ref={drawerRef}
         tabIndex={-1}
         aria-label="Primary"
         className={cn(
-          'fixed inset-y-0 left-0 z-30 flex-col border-r border-ink-700 bg-ink-950 outline-none transition-[width] duration-200 lg:flex',
+          'glass-nav fixed inset-y-0 left-0 z-30 flex-col border-r outline-none transition-[width] duration-200 lg:flex',
           open ? 'flex' : 'hidden',
           collapsed ? 'w-64 lg:w-[4.75rem]' : 'w-64',
         )}
       >
         <div className={cn('flex items-center gap-3 px-5 py-5', collapsed && 'lg:flex-col lg:gap-2 lg:px-2 lg:py-3')}>
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-teal-400 font-bold text-ink-950">GS</div>
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-marigold font-bold text-deep-aubergine">GS</div>
           <div className={cn('min-w-0', hideWhenCollapsed)}>
             <p className="truncate font-semibold text-white">GarageSathi</p>
-            <p className="truncate text-xs text-slate-400">Voice-powered garage ops</p>
+            <p className="truncate text-xs text-white/60">Voice-powered garage ops</p>
           </div>
           <button
             className={cn(
-              'ml-auto hidden rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white lg:inline-flex',
+              'ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg p-0 text-white/70 hover:bg-white/10 hover:text-white',
+              collapsed && 'lg:ml-0',
+            )}
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Open command palette"
+            title="Commands (Ctrl K)"
+          >
+            <Search size={17} />
+          </button>
+          <button
+            className={cn(
+              'hidden rounded-lg p-1 text-white/70 hover:bg-white/10 hover:text-white lg:inline-flex',
               collapsed && 'lg:ml-0',
             )}
             onClick={() => setCollapsed((value) => !value)}
@@ -205,7 +210,7 @@ export function Layout() {
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
           <button
-            className="ml-auto rounded-lg p-1 text-slate-400 hover:bg-ink-800 hover:text-white lg:hidden"
+            className="rounded-lg p-1 text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
           >
@@ -222,9 +227,11 @@ export function Layout() {
               title={collapsed ? label : undefined}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition',
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
                   collapsed && 'lg:justify-center lg:px-0',
-                  isActive ? 'bg-teal-400/10 font-medium text-teal-200' : 'text-slate-400 hover:bg-ink-800 hover:text-slate-100',
+                  isActive
+                    ? 'bg-marigold text-deep-aubergine'
+                    : 'text-white hover:bg-white/10 hover:text-white',
                 )
               }
             >
@@ -234,57 +241,36 @@ export function Layout() {
           ))}
         </nav>
 
-        <div className="space-y-3 border-t border-ink-700 p-4">
-          <button
-            onClick={() => setPaletteOpen(true)}
-            className={cn(
-              'flex w-full items-center gap-2 rounded-xl border border-ink-700 px-3 py-2 text-xs text-slate-400 hover:bg-ink-800 hover:text-slate-200',
-              collapsed && 'lg:justify-center lg:px-0',
-            )}
-            aria-label="Open command palette"
-          >
-            <Search size={14} />
-            <span className={cn('flex-1 text-left', hideWhenCollapsed)}>Jump to…</span>
-            <kbd className={cn('rounded border border-ink-600 px-1 py-0.5 text-[10px]', hideWhenCollapsed)}>Ctrl K</kbd>
-          </button>
-          <div className={cn('space-y-2', collapsed && 'lg:hidden')}>
-            <div>
-              <p className="text-xs text-slate-500">Garage</p>
-              <p className="truncate text-sm font-medium text-slate-200">{garage.name}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {mode === 'offline' ? (
-                <Badge tone="red">API OFFLINE</Badge>
-              ) : mode === 'live' ? (
-                <Badge tone="teal">LIVE GNANI AI MODE</Badge>
-              ) : (
-                <Badge tone="amber">MOCK MODE</Badge>
-              )}
-              {dbMode && <Badge>{dbMode === 'mongodb' ? 'MongoDB' : 'Local store'}</Badge>}
-            </div>
-          </div>
+        <div className={cn('border-t border-white/10 p-4', collapsed && 'lg:hidden')}>
+          <p className="text-xs text-white/50">Garage</p>
+          <p className="truncate text-sm font-medium text-white">{garage.name}</p>
+          {offline && (
+            <p className="mt-2">
+              <Badge tone="red">API offline</Badge>
+            </p>
+          )}
         </div>
       </aside>
 
       {open && <div className="fixed inset-0 z-20 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
 
       <div className={cn('transition-[padding] duration-200', collapsed ? 'lg:pl-[4.75rem]' : 'lg:pl-64')}>
-        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-ink-700 bg-ink-900/90 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="glass-toolbar sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-3 backdrop-blur lg:hidden">
           <button
             ref={menuButtonRef}
             onClick={() => setOpen(true)}
-            className="rounded-lg border border-ink-600 p-2 text-slate-300"
+            className="rounded-lg border border-border p-2 text-deep-aubergine"
             aria-label="Open menu"
             aria-expanded={open}
             aria-controls="app-sidebar"
           >
             <Menu size={18} />
           </button>
-          <span className="font-semibold text-white">GarageSathi</span>
+          <span className="font-semibold text-deep-aubergine">GarageSathi</span>
           <span className="ml-auto flex items-center gap-2">
             {!authChecked ? null : user ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">@{user.username}</span>
+                <span className="text-xs text-muted">@{user.username}</span>
                 <Button variant="ghost" onClick={handleLogout}>
                   <LogOut size={14} /> Sign out
                 </Button>
@@ -296,7 +282,7 @@ export function Layout() {
                 </Button>
               </Link>
             )}
-            {mode === 'live' ? <Badge tone="teal">LIVE</Badge> : mode === 'mock' ? <Badge tone="amber">MOCK</Badge> : <Badge tone="red">OFFLINE</Badge>}
+            {offline && <Badge tone="red">Offline</Badge>}
           </span>
         </header>
 

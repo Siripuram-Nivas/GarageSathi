@@ -1,247 +1,229 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Plus, Save } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Pencil, RotateCcw, Search, Save, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { Service } from '../types';
 import { formatINR } from '../lib/format';
-import { Badge, Button, Card, Field, Input, PageHeader, Skeleton, useToast } from '../components/ui';
+import { catalogueCategories, filterCatalogue, parseRupees } from '../lib/catalogue';
+import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select, Skeleton, useToast } from '../components/ui';
 
-type Draft = { rupees: string; isActive: boolean };
-
-const priceError = (rupees: string) => {
-  const value = Number(rupees);
-  if (!rupees.trim() || !Number.isFinite(value) || value < 0) return 'Enter a price of 0 or more.';
-  return '';
-};
+const errorText = (error: unknown) => (error as Error).message;
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[] | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [loadError, setLoadError] = useState('');
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [editingId, setEditingId] = useState('');
+  const [priceDraft, setPriceDraft] = useState('');
+  const [priceError, setPriceError] = useState('');
   const [savingId, setSavingId] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
-  const [newService, setNewService] = useState({ name: '', rupees: '', category: 'General', aliases: '' });
-  const [addError, setAddError] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [savedId, setSavedId] = useState('');
   const { push } = useToast();
 
-  const load = () => {
+  function load() {
+    setLoadError('');
     api
       .services()
-      .then((res) => {
-        setServices(res.services);
-        setDrafts(Object.fromEntries(res.services.map((s) => [s.id, { rupees: String(s.pricePaise / 100), isActive: s.isActive }])));
-      })
-      .catch((e) => push(e.message, 'error'));
-  };
+      .then((res) => setServices(res.services))
+      .catch((error) => setLoadError(errorText(error)));
+  }
 
   useEffect(load, []);
 
-  if (!services) {
-    return (
-      <div>
-        <PageHeader title="Service catalogue" subtitle="Loading catalogue…" />
-        <Card className="overflow-hidden p-4" aria-busy="true">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="flex items-center gap-4 border-t border-ink-700 py-4 first:border-0">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-9 w-28" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
-        </Card>
-      </div>
-    );
+  function startEdit(service: Service) {
+    setEditingId(service.id);
+    setPriceDraft(String(service.pricePaise / 100));
+    setPriceError('');
+    setSavedId('');
   }
 
-  async function save(service: Service) {
-    const draft = drafts[service.id];
-    const error = priceError(draft?.rupees ?? '');
-    if (error) {
-      push(error, 'error');
+  function cancelEdit() {
+    setEditingId('');
+    setPriceDraft('');
+    setPriceError('');
+  }
+
+  async function savePrice(service: Service) {
+    const parsed = parseRupees(priceDraft);
+    if ('error' in parsed) {
+      setPriceError(parsed.error);
       return;
     }
-    const rupees = Number(draft.rupees);
+    setPriceError('');
     setSavingId(service.id);
     try {
-      const { service: updated } = await api.updateService(service.id, {
-        pricePaise: Math.round(rupees * 100),
-        isActive: draft.isActive,
-      });
-      setServices((current) => current?.map((s) => (s.id === updated.id ? updated : s)) ?? null);
-      push(`${updated.name} updated. Existing job cards keep their snapshot price.`, 'success');
-    } catch (e) {
-      push((e as Error).message, 'error');
+      const { service: updated } = await api.updateServicePrice(service.id, parsed.pricePaise);
+      setServices((current) => current?.map((item) => (item.id === updated.id ? updated : item)) ?? null);
+      setEditingId('');
+      setSavedId(updated.id);
+      push(`${updated.name} price updated for this garage. Existing job cards keep their snapshot.`, 'success');
+    } catch (error) {
+      setPriceError(errorText(error));
     } finally {
       setSavingId('');
     }
   }
 
-  async function addService() {
-    const error =
-      newService.name.trim().length < 2 ? 'Enter a service name of at least 2 characters.' : priceError(newService.rupees);
-    if (error) {
-      setAddError(error);
-      return;
-    }
-    const rupees = Number(newService.rupees);
-    setAddError('');
-    setAdding(true);
-    try {
-      const { service } = await api.createService({
-        name: newService.name.trim(),
-        pricePaise: Math.round(rupees * 100),
-        category: newService.category || 'General',
-        aliases: newService.aliases
-          .split(',')
-          .map((alias) => alias.trim())
-          .filter(Boolean),
-        description: '',
-        isActive: true,
-      });
-      setNewService({ name: '', rupees: '', category: 'General', aliases: '' });
-      setShowAdd(false);
-      load();
-      push(`${service.name} added to the catalogue.`, 'success');
-    } catch (e) {
-      push((e as Error).message, 'error');
-    } finally {
-      setAdding(false);
-    }
+  if (!services) {
+    return (
+      <div>
+        <PageHeader title="Service Catalogue" subtitle="Choose from ready-made services. Adjust your garage prices whenever needed." />
+        {loadError ? (
+          <Card className="p-6">
+            <p role="alert" className="text-sm text-rose-600">
+              The catalogue could not be loaded: {loadError}
+            </p>
+            <Button variant="secondary" className="mt-3" onClick={load}>
+              <RotateCcw size={16} /> Try again
+            </Button>
+          </Card>
+        ) : (
+          <Card className="p-4" aria-busy="true">
+            <p className="pb-3 text-sm text-muted">Loading services…</p>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="mb-2 h-16 w-full" />
+            ))}
+          </Card>
+        )}
+      </div>
+    );
   }
+
+  const categories = catalogueCategories(services);
+  const results = filterCatalogue(services, query, category);
 
   return (
     <div>
-      <PageHeader
-        title="Service catalogue"
-        subtitle="The only source of prices. Estimates always read from here on the server."
-        actions={
-          <Button onClick={() => setShowAdd((value) => !value)}>
-            <Plus size={16} /> Add service
-          </Button>
-        }
-      />
+      <PageHeader title="Service Catalogue" subtitle="Choose from ready-made services. Adjust your garage prices whenever needed." />
 
-      <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 text-sm text-amber-200">
+      <div className="mb-4 flex items-start gap-2 rounded-xl border border-marigold/30 bg-marigold/5 p-3 text-sm text-marigold">
         <AlertTriangle size={17} className="mt-0.5 shrink-0" />
         <p>These are demonstration prices, not verified market rates. Confirm real prices before any production use.</p>
       </div>
 
-      {showAdd && (
-        <Card className="mb-4 p-4">
-          <h2 className="mb-3 text-sm font-medium text-slate-200">New catalogue service</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Name">
+      <Card className="glass-toolbar mb-4 p-4">
+        <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+          <Field label="Find a service">
+            <div className="relative">
+              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <Input
-                value={newService.name}
-                onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                invalid={Boolean(addError) && newService.name.trim().length < 2}
-                placeholder="Air Filter Replacement"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search in English or Telugu…"
+                className="pl-9"
               />
-            </Field>
-            <Field label="Price (₹)">
-              <Input
-                type="number"
-                min={0}
-                value={newService.rupees}
-                onChange={(e) => setNewService({ ...newService, rupees: e.target.value })}
-                invalid={Boolean(addError) && Boolean(priceError(newService.rupees))}
-                placeholder="250"
-              />
-            </Field>
-            <Field label="Category">
-              <Input value={newService.category} onChange={(e) => setNewService({ ...newService, category: e.target.value })} />
-            </Field>
-            <Field label="Aliases (comma separated)" hint="Include Telugu words for recognition.">
-              <Input value={newService.aliases} onChange={(e) => setNewService({ ...newService, aliases: e.target.value })} placeholder="air filter, ఎయిర్ ఫిల్టర్" />
-            </Field>
-          </div>
-          {addError && (
-            <p role="alert" className="mt-2 text-xs text-rose-400">
-              {addError}
-            </p>
-          )}
-          <div className="mt-3 flex gap-2">
-            <Button onClick={addService} loading={adding}>
-              Save service
-            </Button>
-            <Button variant="ghost" onClick={() => setShowAdd(false)}>
-              Cancel
-            </Button>
-          </div>
+            </div>
+          </Field>
+          <Field label="Category">
+            <Select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option value="">All categories</option>
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+        <p className="mt-2 text-xs text-muted" aria-live="polite">
+          {results.length} of {services.length} services
+        </p>
+      </Card>
+
+      {!services.length ? (
+        <Card>
+          <EmptyState title="No services available" hint="The platform catalogue has not been seeded yet. Contact your GarageSathi administrator." />
         </Card>
+      ) : !results.length ? (
+        <Card>
+          <EmptyState
+            title="No services match your search"
+            hint="Try an English or Telugu word, or clear the category filter."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setQuery('');
+                  setCategory('');
+                }}
+              >
+                Clear filters
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {results.map((service) => {
+            const editing = editingId === service.id;
+            return (
+              <li key={service.id}>
+                <Card className="glass-card-interactive flex h-full flex-col p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h2 className="truncate font-medium text-deep-aubergine">{service.name}</h2>
+                      <Badge className="mt-1">{service.category}</Badge>
+                    </div>
+                  </div>
+                  <p className="mt-2 line-clamp-2 flex-1 text-xs text-muted">{service.description}</p>
+
+                  {editing ? (
+                    <div className="mt-3 space-y-2">
+                      <Field label="Garage price (₹)" error={priceError}>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          value={priceDraft}
+                          onChange={(event) => {
+                            setPriceDraft(event.target.value);
+                            setPriceError('');
+                          }}
+                          invalid={Boolean(priceError)}
+                          autoFocus
+                          aria-label={`Garage price for ${service.name} in rupees`}
+                        />
+                      </Field>
+                      <div className="flex flex-wrap gap-2">
+                        <Button className="px-3 py-1.5 text-xs" loading={savingId === service.id} onClick={() => savePrice(service)}>
+                          <Save size={14} /> Save price
+                        </Button>
+                        <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={cancelEdit} disabled={savingId === service.id}>
+                          <X size={14} /> Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wide text-muted">Garage price</p>
+                      <p className="text-lg font-semibold tabular-nums text-deep-aubergine">{formatINR(service.pricePaise)}</p>
+                      <p className="text-xs text-muted">
+                        {service.priceOverridden
+                          ? `Catalogue default ${formatINR(service.defaultPricePaise)}`
+                          : 'Using the catalogue default price'}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <Button variant="secondary" className="px-3 py-1.5 text-xs" onClick={() => startEdit(service)}>
+                          <Pencil size={14} /> Edit price
+                        </Button>
+                        {savedId === service.id && (
+                          <span role="status" className="inline-flex items-center gap-1 text-xs text-emerald-700">
+                            <CheckCircle2 size={14} /> Price updated
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead>
-              <tr className="border-b border-ink-700 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-4 py-3 font-medium">Service</th>
-                <th className="px-4 py-3 font-medium">Aliases</th>
-                <th className="px-4 py-3 font-medium">Price (₹)</th>
-                <th className="px-4 py-3 font-medium">Active</th>
-                <th className="px-4 py-3 font-medium">Snapshot</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-700">
-              {services.map((service) => {
-                const draft = drafts[service.id] ?? { rupees: String(service.pricePaise / 100), isActive: service.isActive };
-                return (
-                  <tr key={service.id} className="align-middle">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-slate-200">{service.name}</p>
-                      <p className="text-xs text-slate-500">{service.category}</p>
-                    </td>
-                    <td className="max-w-64 px-4 py-3 text-xs text-slate-400">{service.aliases.join(', ') || '—'}</td>
-                    <td className="px-4 py-3">
-                      <Input
-                        type="number"
-                        min={0}
-                        value={draft.rupees}
-                        onChange={(e) => setDrafts({ ...drafts, [service.id]: { ...draft, rupees: e.target.value } })}
-                        className="w-28"
-                        aria-label={`Price for ${service.name}`}
-                        invalid={Boolean(priceError(draft.rupees))}
-                      />
-                      {priceError(draft.rupees) && (
-                        <p role="alert" className="mt-1 text-xs text-rose-400">
-                          {priceError(draft.rupees)}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-                        <input
-                          type="checkbox"
-                          checked={draft.isActive}
-                          onChange={(e) => setDrafts({ ...drafts, [service.id]: { ...draft, isActive: e.target.checked } })}
-                          className="h-4 w-4 accent-teal-400"
-                        />
-                        {draft.isActive ? 'Active' : 'Inactive'}
-                      </label>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{formatINR(service.pricePaise)}</td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="secondary"
-                        className="px-3 py-1.5 text-xs"
-                        loading={savingId === service.id}
-                        disabled={draft.rupees === String(service.pricePaise / 100) && draft.isActive === service.isActive}
-                        onClick={() => save(service)}
-                      >
-                        <Save size={14} /> Save
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-      <p className="mt-3 text-xs text-slate-500">
-        <Badge>Tip</Badge> Every saved job card keeps a price snapshot, so changing the catalogue never rewrites history.
+      <p className="mt-4 text-xs text-muted">
+        Changing a garage price never changes the central default, and every saved job card keeps the price snapshot taken at approval.
       </p>
     </div>
   );

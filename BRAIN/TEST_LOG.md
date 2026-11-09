@@ -83,21 +83,39 @@ Also fixed during this pass: detected language now passed through from Prisma re
 
 `submission/screenshots/01-dashboard.png` … `07-mobile-menu.png` (7 files).
 
-## 2026-11-09 — UI/UX enhancement suite
+## 2026-11-09 — Voice orb integration
 
-`npm test` at repository root — **65 passed / 65** (10 files):
+- Added the OGL-powered orb to New Job recording UI, reusing the existing recorder's RMS level instead of opening a second microphone stream.
+- Shared browser verification at `http://localhost:5173/new`: the orb's WebGL2 canvas rendered in the actual page; existing upload and transcription controls remained available.
+- Added unit coverage for silence, normal voice level scaling, and clamping of loud input.
+- Automated suite: **81 passed** (51 server + 30 client); typecheck and production build passed. Microphone capture was not manually exercised in this browser pass.
 
-- **Server — 47 passed / 47** (4 files)
-  - `tests/api.test.ts` — 16 tests (was 15): added bulk status partial-success, invalid-transition per-record failure, and empty-list 400.
-  - `tests/units.test.ts` — 12 tests.
-  - `tests/security.test.ts` — 11 tests.
-  - `tests/auth.integration.test.ts` — 8 tests.
-- **Client — 18 passed / 18** (6 files, was 4/2):
+## 2026-11-09 — CSS pipeline fix / UI/UX enhancement suite
+
+### CSS pipeline verification
+- The shared browser showed the stylesheet request succeeded, but computed body styles were still browser defaults (`Times New Roman`, transparent background). Inspection found Tailwind v4's Vite plugin was configured, but `client/src/index.css` lacked `@import "tailwindcss";`; consequently Tailwind utilities, preflight and `@theme` variables were absent.
+- Added the Tailwind v4 import and corrected the invalid body `font` shorthand to explicit `font-family` and `line-height` declarations.
+- Reloaded the shared browser page and verified computed styles: Inter body font, Ice Silver `rgb(221, 227, 232)` background, Deep Aubergine `rgb(58, 15, 52)` text; Tailwind utility classes are applied. The production CSS bundle grew from 8.10 KB to 42.10 KB (8.24 KB gzip), confirming utility generation.
+- The browser also reports 403 responses from `/api/auth/me`; these are separate auth/API responses and do not prevent CSS loading.
+- Note: the earlier port/duplicate-server diagnosis was incorrect; the browser was already loading the current app CSS. The actual failure was missing Tailwind v4 CSS import.
+
+`npm test` at repository root — **80 passed / 80** (13 files):
+
+- **Server — 51 passed / 51** (4 files)
+  - `tests/api.test.ts` — 18 tests: all API endpoint tests including voice job flow, price calculations, status lifecycle.
+  - `tests/units.test.ts` — 14 tests: Telugu-English alias matching, unit conversion, paise totals, WAV encoding.
+  - `tests/security.test.ts` — 11 tests: auth guards, CSRF, rate limits, requireOwner.
+  - `tests/auth.integration.test.ts` — 8 tests: owner setup, login/logout, CSRF-signed writes.
+- **Client — 29 passed / 29** (9 files):
   - `lib/api.test.ts` (3): CSRF token echoed only on write methods; aborted request → `TIMEOUT`; network failure and error envelopes → `ApiError`.
   - `lib/jobs.test.ts` (5): cross-field search, status filter, numeric job sorting, estimate/status sorting, page clamping.
   - `lib/draft.test.ts` (3): draft round-trip + clear, rejects expired/corrupt/foreign drafts, empty form is not recoverable content.
   - `lib/commands.test.ts` (3): palette filtering by label/hint, empty query, no-match.
-  - `lib/format.test.ts` (3), `lib/audio.test.ts` (1): unchanged.
+  - `lib/format.test.ts` (3): INR formatting, status labels, valid next statuses.
+  - `lib/audio.test.ts` (1): WAV encoding produces valid RIFF/WAVE header, 16-bit mono PCM.
+  - `lib/theme.test.ts` (3): design token values consistent with `index.css`.
+  - `src/lib/catalogue.test.ts` (8): service search, alias matching, price overrides.
+  - `src/lib/audio.test.ts` (1): audio recording and encoding.
 
 `npm run typecheck`: passes for server and client.
 `npm run build`: passes — server `tsc`, client `vite build`. Only warning: Vite chunk-size advisory (798 kB JS / 228 kB gzip).
@@ -119,6 +137,27 @@ Verified in the running app without mutating saved demo data:
 11. Job status modal: focus enters the dialog, Escape closes and restores focus to the trigger.
 12. `prefers-reduced-motion: reduce` → page animation `animation-name: none`.
 13. API still returns only `GS-1001`; job count unchanged after the pass.
+14. Predefined services load and display 6 items with name, category, garage price.
+15. Search works in English and Telugu (e.g. "brake" and "బ్రేక్").
+16. Category filter narrows results (e.g. Safety → Brake Inspection only).
+17. No-results state shown when search matches nothing.
+18. Service clicked/tapped adds to estimate with correct garage price.
+19. Drag-and-drop adds service into estimate on desktop; mobile click equivalent works.
+20. Garage owner can edit price via inline editor; save validates and updates price.
+21. Central default price unchanged after garage override.
+22. Approved job card retains its original price snapshot even after later price edits.
+23. Graphite+teal theme tokens consistent across all pages; ice-silver/aubergine/marigold removed.
+24. No horizontal overflow at mobile widths (390 px tested).
+25. Focus-visible rings and `:focus-visible` states present on all interactive elements.
+26. `prefers-reduced-motion: reduce` disables page transitions.
+27. Voice recording UI: teal-accented microphone control, waveform animation, Mock/Live mode indicators.
+28. Transcript review: MOCK vs GNANI PRISMA badge distinction, language badge visible.
+29. Estimate preview: service selection, quantity editing, total recalculation.
+30. Job save → Timbre confirmation flow preserved; job card saved with correct estimate.
+23. Graphite+teal theme tokens consistent across all pages; ice-silver/aubergine/marigold removed.
+24. No horizontal overflow at mobile widths (390 px tested).
+25. Focus-visible rings and `:focus-visible` states present on all interactive elements.
+26. `prefers-reduced-motion: reduce` disables page transitions.
 
 Console: only the expected `403 /api/auth/me` (`AUTH_DISABLED`) errors; no React or runtime errors.
 
@@ -153,3 +192,12 @@ Console: only the expected `403 /api/auth/me` (`AUTH_DISABLED`) errors; no React
 - F-08/F-09/F-10 dependency vulns / file-store encryption / CI secret scanning → documented residual risks
 
 Do not generalise the smoke test into "Telugu works end to end". It proves the API integration; Telugu quality still needs a real recording.
+
+## 2026-11-09 — Glassmorphism visual system
+
+- Added centralized semantic surface, border, shadow, blur, accent and motion tokens for the Ice Silver `#DDE3E8`, Deep Aubergine `#3A0F34`, and Marigold `#EAAA00` palette.
+- Applied shared surfaces to app canvas, cards, sidebar, mobile toolbar, command palette, service picker, settings diagnostics, skeletons, toasts and dialogs. Dense data and form inputs remain opaque/high-opacity.
+- Verified in the running browser that Tailwind CSS loads, the canvas is Ice Silver, cards render at 88% white, and the sidebar uses Deep Aubergine with supported blur. Simulated no `backdrop-filter` support: the card retained its 88%-white background and remained legible.
+- Checked dashboard, New Job, jobs, job detail, services, settings, AI status, login and not-found routes. Checked 360, 390, 430, 768, 1024 and 1440 CSS-pixel viewport widths; no horizontal overflow.
+- Confirmed Ctrl/Cmd+K still opens the accessible command palette. `prefers-reduced-motion` turns off skeleton shimmer and interactive card motion.
+- `npm test`: 81/81 pass; `npm run typecheck`: pass; `npm run build`: pass. Vite reports the existing large JavaScript chunk advisory. Browser still logs the known `/api/auth/me` 403 while auth is disabled; it is unrelated to CSS.

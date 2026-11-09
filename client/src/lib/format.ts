@@ -18,16 +18,16 @@ export const statusLabel = (status: JobStatus) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-export const statusTone = (status: JobStatus): 'neutral' | 'teal' | 'amber' | 'sky' | 'green' | 'red' => {
+export const statusTone = (status: JobStatus): 'neutral' | 'aubergine' | 'marigold' | 'sky' | 'green' | 'red' => {
   switch (status) {
     case 'RECEIVED':
     case 'INSPECTION':
       return 'sky';
     case 'AWAITING_APPROVAL':
-      return 'amber';
+      return 'marigold';
     case 'APPROVED':
     case 'READY_FOR_DELIVERY':
-      return 'teal';
+      return 'aubergine';
     case 'IN_PROGRESS':
       return 'sky';
     case 'COMPLETED':

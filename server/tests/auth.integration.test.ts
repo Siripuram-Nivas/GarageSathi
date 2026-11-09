@@ -67,28 +67,31 @@ describe('Security: auth integration (auth-enabled)', () => {
     return cookies;
   });
 
-  it('authenticated owner can create a service', async () => {
+  it('authenticated owner can update a garage price', async () => {
     const agent = request.agent(app);
     await agent.post('/api/auth/login').send({ username: 'mechanic', password: 'StrongPass123!' }).expect(200);
     // Obtain a CSRF token from any response after login (regenerate resets the session).
     const health = await agent.get('/api/health').expect(200);
     const csrfToken = health.headers['x-csrf-token'];
     expect(csrfToken).toBeDefined();
+    const catalogue = await agent.get('/api/services').expect(200);
     await agent
-      .post('/api/services')
+      .patch(`/api/services/${catalogue.body.services[0].id}/price`)
       .set('X-CSRF-Token', csrfToken as string)
-      .send({ name: 'Test Service', pricePaise: 5000, category: 'General' })
-      .expect(201);
+      .send({ pricePaise: 12_500 })
+      .expect(200);
   });
 
-  it('unauthenticated service creation is rejected', async () => {
-    await request(app).post('/api/services').send({ name: 'No Auth', pricePaise: 100 }).expect(401);
+  it('unauthenticated price edits are rejected', async () => {
+    const catalogue = await request(app).get('/api/services').expect(200);
+    await request(app).patch(`/api/services/${catalogue.body.services[0].id}/price`).send({ pricePaise: 100 }).expect(401);
   });
 
   it('logout clears the session', async () => {
     const agent = request.agent(app);
     await agent.post('/api/auth/login').send({ username: 'mechanic', password: 'StrongPass123!' }).expect(200);
+    const catalogue = await agent.get('/api/services').expect(200);
     await agent.post('/api/auth/logout').expect(200);
-    await agent.post('/api/services').send({ name: 'After Logout', pricePaise: 100 }).expect(401);
+    await agent.patch(`/api/services/${catalogue.body.services[0].id}/price`).send({ pricePaise: 100 }).expect(401);
   });
 });

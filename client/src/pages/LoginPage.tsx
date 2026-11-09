@@ -29,16 +29,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-ink-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-ice-silver px-4">
       <Card className="w-full max-w-md p-8">
         <PageHeader
           title="Sign in"
           subtitle="Enter your GarageSathi owner credentials."
-          actions={<Link to="/" className="text-xs text-teal-300 hover:text-teal-200">← Back to dashboard</Link>}
+          actions={<Link to="/" className="text-xs text-marigold hover:text-amber-600">← Back to dashboard</Link>}
         />
 
         {error && (
-          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-sm text-rose-300">
+          <div className="mb-4 rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700">
             {error}
           </div>
         )}
@@ -68,7 +68,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-ink-700 flex items-center gap-2 text-xs text-slate-500">
+        <div className="mt-6 pt-6 border-t border-border flex items-center gap-2 text-xs text-muted">
           <Lock size={14} />
           <span>Sessions are server-managed; credentials are never stored in the browser.</span>
         </div>
