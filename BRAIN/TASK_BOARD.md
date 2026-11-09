@@ -71,6 +71,11 @@ Statuses: NOT_STARTED / IN_PROGRESS / BLOCKED / COMPLETED / VERIFIED
 ## Deployment
 - [ ] NOT_STARTED — Vercel + Node host + Atlas. Developer approval required; no paid services.
 
+## GitHub
+- [x] VERIFIED — pushed `main` to `https://github.com/Siripuram-Nivas/GarageSathi` on 2026-11-09; remote verified (empty before push, now at commit `dcd30bd`).
+- [x] VERIFIED — `.env` ignored and never committed; staged-diff and 6-commit history secret scans clean; `.env.example` contains placeholders only.
+- [x] VERIFIED — pre-push gate: 65 tests, typecheck, build exit 0; `npm audit` 7 findings documented as residual risk (not force-fixed).
+
 ## Submission
 - [x] VERIFIED — `submission/` documents written honestly (8 docs + 7 screenshots).
 - [x] VERIFIED — `README.md` and `DEPLOYMENT.md`.

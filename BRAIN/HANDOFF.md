@@ -18,6 +18,18 @@ GarageSathi is built end to end and runs locally in mock mode. The full workflow
 
 A single live smoke test on 2026-11-08 passed: Prisma transcribed English speech correctly (`en-IN`) and Timbre returned a 48 kHz WAV. See `TEST_LOG.md`; audio at `submission/live-smoke-tts.wav`.
 
+## GitHub
+
+- **Repository:** https://github.com/Siripuram-Nivas/GarageSathi (`origin`, verified before push).
+- **Branch:** `main`, tracking `origin/main`.
+- **Latest pushed commit:** `dcd30bd` — `feat: add accessible UI/UX layer and bulk job status updates`, pushed 2026-11-09.
+- **Push history:** the remote was empty before this push, so the full history (`4970ed7` MVP, `22fff63` security hardening, `dcd30bd` UI/UX) is now on GitHub. Remote `refs/heads/main` and the GitHub commits API both report `dcd30bd`.
+- **Files included:** 39 files — UI components/pages/helpers, client and server tests, `PATCH /api/jobs/bulk-status`, documentation updates, hardened `.gitignore`.
+- **Intentionally excluded:** `.env` (ignored and never present in any commit), `data/`, `node_modules/`, `dist/`, coverage, Playwright artifacts, logs, private keys.
+- **Secret scans:** custom 6-commit blob scan over `git rev-list --all` plus a staged-diff scan. No credentials found; the only match is the documented `mongodb+srv://USER:PASS@…` placeholder in `DEPLOYMENT.md`. `git check-ignore` confirms the env file is ignored and `.env.example` is not.
+- **Gate before commit:** `npm test` 65/65, `npm run typecheck` pass, `npm run build` exit 0, `npm audit` 7 findings (dev tooling + zod major upgrade) documented as residual risk.
+- **Author identity:** the GitHub account's "Keep my email addresses private" setting was turned off by the owner to allow the push, so `4970ed7` and `dcd30bd` are authored with `siripuramnivas53@gmail.com`. Repo-local identity is now `237404019+Siripuram-Nivas@users.noreply.github.com` for future commits; earlier `22fff63` already used it.
+
 ## Run it
 
 ```bash
